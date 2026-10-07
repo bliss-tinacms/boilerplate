@@ -27,10 +27,10 @@ export default defineConfig({
   clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID || process.env.PUBLIC_TINA_CLIENT_ID || process.env.TINA_PUBLIC_CLIENT_ID || "40bc8cd1-d0fe-4061-b99c-d91be2de59e0",
   // Get this from tina.io
   token: process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN,
-  media: {
+    media: {
     loadCustomStore: async () => {
       const pack = await import("next-tinacms-cloudinary");
-      return pack.createTinaCloudCloudinaryMediaStore({ baseUrl: "/tina-cloudinary-media" });
+      return pack.TinaCloudCloudinaryMediaStore;
     },
   },
   build: {
