@@ -12,9 +12,19 @@ function json(data: unknown, status = 200) {
 }
 
 function getCredentials() {
-  const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
-  const api_key = process.env.CLOUDINARY_API_KEY;
-  const api_secret = process.env.CLOUDINARY_API_SECRET;
+  let cloud_name = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  let api_key = process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
+  let api_secret = process.env.CLOUDINARY_API_SECRET;
+
+  const cloudinaryUrl = process.env.CLOUDINARY_URL || process.env.NEXT_PUBLIC_CLOUDINARY_URL || '';
+  if ((!cloud_name || !api_key || !api_secret) && cloudinaryUrl) {
+    try {
+      const parsed = new URL(cloudinaryUrl);
+      cloud_name ||= parsed.hostname;
+      api_key ||= decodeURIComponent(parsed.username || '');
+      api_secret ||= decodeURIComponent(parsed.password || '');
+    } catch (_error) {}
+  }
 
   if (!cloud_name || !api_key || !api_secret) {
     throw new Error("Missing Cloudinary environment variables");
@@ -26,6 +36,12 @@ function getCredentials() {
 async function authorized(request: Request, url: URL) {
   if (process.env.NODE_ENV === "development") return true;
 
+  const clientId =
+    process.env.NEXT_PUBLIC_TINA_CLIENT_ID ||
+    process.env.PUBLIC_TINA_CLIENT_ID ||
+    process.env.TINA_PUBLIC_CLIENT_ID ||
+    '';
+
   const reqForTina = {
     query: Object.fromEntries(url.searchParams.entries()),
     headers: {
@@ -33,7 +49,7 @@ async function authorized(request: Request, url: URL) {
     },
   };
 
-  const user = await isAuthorized(reqForTina as any);
+  const user = await isAuthorized(reqForTina as any, clientId);
   return Boolean(user && (user as any).verified);
 }
 
