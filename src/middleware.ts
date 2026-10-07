@@ -85,5 +85,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return Response.redirect(destination, redirect.permanent === false ? 302 : 301);
   }
 
-  return next();
+  const response = await next();
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+  return response;
 });
