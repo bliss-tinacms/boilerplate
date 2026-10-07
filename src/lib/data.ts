@@ -271,7 +271,7 @@ async function fetchGithubPageFrontmatter(relativePath: string) {
 async function fetchLiveTina<T>(query: string, variables?: Record<string, unknown>, pick?: (json: any) => T | null | undefined) {
 	for (const endpoint of tinaProxyEndpoints()) {
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 8000);
+		const timeout = setTimeout(() => controller.abort(), 30000);
 		try {
 			const headers: Record<string, string> = { 'content-type': 'application/json' };
 			const token = tinaApiToken();
@@ -313,7 +313,7 @@ async function fetchLiveTina<T>(query: string, variables?: Record<string, unknow
 async function fetchLiveTinaResult<TData>(query: string, variables?: Record<string, unknown>) {
 	for (const endpoint of tinaProxyEndpoints()) {
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 8000);
+		const timeout = setTimeout(() => controller.abort(), 30000);
 		try {
 			const headers: Record<string, string> = { 'content-type': 'application/json' };
 			const token = tinaApiToken();
