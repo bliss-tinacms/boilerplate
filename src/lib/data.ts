@@ -205,17 +205,20 @@ function toTinaEditableBlog<T extends Record<string, any>>(node: T): T {
 
 function tinaDirectContentApiUrl() {
 	const clientId =
+		import.meta.env.NEXT_PUBLIC_TINA_CLIENT_ID ||
+		import.meta.env.PUBLIC_TINA_CLIENT_ID ||
+		import.meta.env.TINA_PUBLIC_CLIENT_ID ||
 		process.env.NEXT_PUBLIC_TINA_CLIENT_ID ||
 		process.env.PUBLIC_TINA_CLIENT_ID ||
 		process.env.TINA_PUBLIC_CLIENT_ID ||
 		'40bc8cd1-d0fe-4061-b99c-d91be2de59e0';
-	const branch = process.env.NEXT_PUBLIC_TINA_BRANCH || process.env.TINA_BRANCH || 'main';
+	const branch = import.meta.env.NEXT_PUBLIC_TINA_BRANCH || import.meta.env.TINA_BRANCH || process.env.NEXT_PUBLIC_TINA_BRANCH || process.env.TINA_BRANCH || 'main';
 	if (!clientId) return null;
 	return `https://content.tinajs.io/2.4/content/${encodeURIComponent(clientId)}/github/${encodeURIComponent(branch)}`;
 }
 
 function tinaApiToken() {
-	return process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN || '';
+	return import.meta.env.NEXT_PUBLIC_TINA_TOKEN || import.meta.env.TINA_PUBLIC_TINA_TOKEN || import.meta.env.TINA_TOKEN || process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN || '';
 }
 
 function hasUnsupportedFieldError(json: any) {
