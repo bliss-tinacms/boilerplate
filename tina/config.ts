@@ -30,7 +30,7 @@ export default defineConfig({
   media: {
     loadCustomStore: async () => {
       const pack = await import("next-tinacms-cloudinary");
-      return pack.createTinaCloudCloudinaryMediaStore({ baseUrl: "/tina-content-proxy?cloudinaryMedia=1" });
+      return pack.createTinaCloudCloudinaryMediaStore({ baseUrl: "/tina-cloudinary-media" });
     },
   },
   build: {
