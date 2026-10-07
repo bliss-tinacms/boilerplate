@@ -431,12 +431,23 @@ function corsHeaders(request: Request) {
 export const OPTIONS: APIRoute = ({ request }) =>
   new Response(null, { status: 204, headers: corsHeaders(request) });
 
-export const GET: APIRoute = async (context) => cloudinaryGET(context as any);
+export const GET: APIRoute = async (context) => {
+  const url = new URL(context.request.url);
+  if (url.searchParams.get('cloudinaryMedia') === '1') return cloudinaryGET(context as any);
+  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    status: 405,
+    headers: {
+      ...corsHeaders(context.request),
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  });
+};
 
 export const POST: APIRoute = async (context) => {
   const { request } = context;
-  const contentType = request.headers.get('content-type') || '';
-  if (contentType.includes('multipart/form-data')) return cloudinaryPOST(context as any);
+  const url = new URL(request.url);
+  if (url.searchParams.get('cloudinaryMedia') === '1') return cloudinaryPOST(context as any);
 
   const clientId = getClientId();
   const branch = getBranch();
