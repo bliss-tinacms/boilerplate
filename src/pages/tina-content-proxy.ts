@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import matter from 'gray-matter';
 import type { APIRoute } from 'astro';
+import { GET as cloudinaryGET, POST as cloudinaryPOST } from './api/cloudinary/media/[...media]';
 
 export const prerender = false;
 
@@ -430,17 +431,24 @@ function corsHeaders(request: Request) {
 export const OPTIONS: APIRoute = ({ request }) =>
   new Response(null, { status: 204, headers: corsHeaders(request) });
 
-export const GET: APIRoute = ({ request }) =>
-  new Response(JSON.stringify({ error: 'Method not allowed' }), {
+export const GET: APIRoute = async (context) => {
+  const url = new URL(context.request.url);
+  if (url.searchParams.get('cloudinaryMedia') === '1') return cloudinaryGET(context as any);
+  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
     status: 405,
     headers: {
-      ...corsHeaders(request),
+      ...corsHeaders(context.request),
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
     },
   });
+};
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async (context) => {
+  const { request } = context;
+  const url = new URL(request.url);
+  if (url.searchParams.get('cloudinaryMedia') === '1') return cloudinaryPOST(context as any);
+
   const clientId = getClientId();
   const branch = getBranch();
 
