@@ -198,6 +198,138 @@ function viewFrontendField(kind) {
   };
 }
 
+// tina/fields/category-checkbox-group.ts
+import React2 from "react";
+var CATEGORY_OPTIONS = [
+  { label: "Business", value: "src/content/category/Business.json" },
+  { label: "Featured", value: "src/content/category/Featured.json" },
+  { label: "Health", value: "src/content/category/Health.json" },
+  { label: "Lifestyle", value: "src/content/category/Lifestyle.json" },
+  { label: "Politics", value: "src/content/category/Politics.json" },
+  { label: "Technology", value: "src/content/category/Technology.json" },
+  { label: "World", value: "src/content/category/World.json" }
+];
+function basename(value) {
+  return String(value || "").split("/").pop()?.replace(/\.(json|mdx?)$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "";
+}
+function normalizeItem(item) {
+  if (!item) return [];
+  if (typeof item === "string") return [item, basename(item)];
+  if (typeof item === "object") {
+    const candidates = [
+      item.category,
+      item.value,
+      item.label,
+      item.title,
+      item.name,
+      item._sys?.path,
+      item._sys?.relativePath,
+      item._sys?.filename
+    ].filter(Boolean);
+    return candidates.flatMap((candidate) => [String(candidate), basename(candidate)]);
+  }
+  return [String(item), basename(item)];
+}
+function normalizeValue(value) {
+  const raw = Array.isArray(value) ? value : value ? [value] : [];
+  const keys = /* @__PURE__ */ new Set();
+  for (const item of raw) {
+    for (const key of normalizeItem(item)) {
+      if (key) keys.add(key);
+    }
+  }
+  return keys;
+}
+function canonicalize(value) {
+  const keys = normalizeValue(value);
+  return CATEGORY_OPTIONS.filter((option) => keys.has(option.value) || keys.has(basename(option.value)) || keys.has(option.label) || keys.has(basename(option.label))).map((option) => option.value);
+}
+function CategoryCheckboxGroupField({ input, field, disabled = false }) {
+  const [hydratedSelected, setHydratedSelected] = React2.useState(null);
+  React2.useEffect(() => {
+    try {
+      const hash = String(window.location.hash || "");
+      const slug = hash.split("/").filter(Boolean).pop();
+      if (!slug || slug === "~") return;
+      const relativePath = `${slug}.mdx`;
+      fetch(`/tina-content-proxy`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        },
+        body: JSON.stringify({
+          query: `query BlogCategoryRead($relativePath:String!){ blog(relativePath:$relativePath){ categories } }`,
+          variables: { relativePath }
+        })
+      }).then((response) => response.json()).then((payload) => {
+        const values = canonicalize(payload?.data?.blog?.categories);
+        if (values.length) setHydratedSelected(values);
+      }).catch(() => {
+      });
+    } catch (_error) {
+    }
+  }, [input?.name]);
+  const selected = hydratedSelected ?? canonicalize(input?.value);
+  const selectedSet = new Set(selected);
+  const name = input?.name || field?.name || "categories";
+  function toggle(value, checked) {
+    const next = new Set(selected);
+    if (checked) next.add(value);
+    else next.delete(value);
+    const values = CATEGORY_OPTIONS.filter((option) => next.has(option.value)).map((option) => option.value);
+    setHydratedSelected(values);
+    try {
+      const hash = String(window.location.hash || "");
+      const slug = hash.split("/").filter(Boolean).pop();
+      if (!slug || slug === "~") return;
+      fetch(`/tina-content-proxy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+        body: JSON.stringify({
+          query: `mutation UpdateBlogCategories($relativePath:String!,$params:BlogMutation!){ updateBlog(relativePath:$relativePath, params:$params){ categories } }`,
+          variables: { relativePath: `${slug}.mdx`, params: { categories: values } }
+        })
+      }).catch(() => {
+      });
+    } catch (_error) {
+    }
+  }
+  return React2.createElement(
+    "div",
+    {
+      id: name,
+      style: { display: "flex", flexDirection: "column", gap: "0.35rem" },
+      "data-ffn-category-checkbox-group": "true",
+      "data-ffn-selected-categories": selected.join(",")
+    },
+    CATEGORY_OPTIONS.map((option) => {
+      const id = `field-${name}-option-${basename(option.value)}`;
+      const checked = selectedSet.has(option.value);
+      return React2.createElement(
+        "label",
+        {
+          key: option.value,
+          htmlFor: id,
+          style: { display: "flex", alignItems: "center", gap: "0.5rem", cursor: disabled ? "not-allowed" : "pointer", color: "#374151", fontSize: "14px" }
+        },
+        React2.createElement("input", {
+          id,
+          name,
+          type: "checkbox",
+          value: option.value,
+          checked,
+          disabled,
+          onChange: (event) => toggle(option.value, event.target.checked),
+          style: { width: "16px", height: "16px" },
+          "data-ffn-category-value": option.value
+        }),
+        React2.createElement("span", null, option.label)
+      );
+    })
+  );
+}
+
 // tina/collections/blog.ts
 function slugifyFilename(value) {
   if (!value || typeof value !== "string") return "untitled";
@@ -246,6 +378,9 @@ function cleanPublicSlug(value) {
 function filenameFromDocument(document) {
   return cleanPublicSlug(document?._sys?.filename || document?._sys?.basename || "");
 }
+function categoryOptions() {
+  return CATEGORY_OPTIONS;
+}
 var BlogCollection = {
   name: "blog",
   label: "Blogs",
@@ -272,11 +407,15 @@ var BlogCollection = {
     { name: "pubDate", label: "Publication Date", type: "datetime" },
     { name: "updatedDate", label: "Updated Date", type: "datetime" },
     {
-      name: "category",
-      label: "Primary Category",
-      type: "reference",
-      collections: ["category"],
-      description: "Assign this post to its primary category."
+      name: "categories",
+      label: "Categories",
+      type: "string",
+      list: true,
+      options: categoryOptions(),
+      ui: {
+        component: CategoryCheckboxGroupField
+      },
+      description: "Assign this post to one or more categories. Values save as category document paths."
     },
     {
       name: "author",
