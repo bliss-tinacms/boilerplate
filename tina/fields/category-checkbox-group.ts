@@ -101,18 +101,13 @@ export function CategoryCheckboxGroupField({ input, field, disabled = false }: a
     else next.delete(value);
     const values = CATEGORY_OPTIONS.filter((option) => next.has(option.value)).map((option) => option.value);
     setHydratedSelected(values);
+
+    // Update Tina's real form state so the form becomes dirty, Save enables,
+    // and Tina performs the normal authenticated document save. A side-channel
+    // fetch here can visually check boxes while leaving the sidebar form stale.
     try {
-      const hash = String(window.location.hash || "");
-      const slug = hash.split("/").filter(Boolean).pop();
-      if (!slug || slug === "~") return;
-      fetch(`/tina-content-proxy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
-        body: JSON.stringify({
-          query: `mutation UpdateBlogCategories($relativePath:String!,$params:BlogMutation!){ updateBlog(relativePath:$relativePath, params:$params){ categories } }`,
-          variables: { relativePath: `${slug}.mdx`, params: { categories: values } },
-        }),
-      }).catch(() => {});
+      input?.onChange?.(values);
+      input?.onBlur?.();
     } catch (_error) {}
   }
 

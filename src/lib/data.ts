@@ -197,9 +197,8 @@ function toTinaEditableBlog<T extends Record<string, any>>(node: T): T {
 	const hydrated = hydrateBlogCategories(node as any) as Record<string, any>;
 	return {
 		...hydrated,
-		// Tina Cloud is still schema-stale for this field. Keep the form payload empty
-		// so its validator does not reject either string or object category values.
-		// The custom field hydrates/persists the real selections through /tina-content-proxy.
+		// Keep legacy empty form payload compatible only when Cloud/schema is stale.
+		// The visible category editor must persist through Tina's normal form state.
 		categories: [],
 	} as unknown as T;
 }
