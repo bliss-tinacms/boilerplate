@@ -218,7 +218,7 @@ function tinaDirectContentApiUrl() {
 }
 
 function tinaApiToken() {
-	return import.meta.env.NEXT_PUBLIC_TINA_TOKEN || import.meta.env.TINA_PUBLIC_TINA_TOKEN || import.meta.env.TINA_TOKEN || process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN || '';
+	return import.meta.env.PUBLIC_TINA_TOKEN || import.meta.env.NEXT_PUBLIC_TINA_TOKEN || import.meta.env.TINA_PUBLIC_TINA_TOKEN || import.meta.env.TINA_TOKEN || process.env.PUBLIC_TINA_TOKEN || process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN || '';
 }
 
 function hasUnsupportedFieldError(json: any) {
