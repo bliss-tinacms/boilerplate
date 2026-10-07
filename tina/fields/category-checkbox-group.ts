@@ -103,11 +103,25 @@ export function CategoryCheckboxGroupField({ input, field, disabled = false }: a
     setHydratedSelected(values);
 
     // Update Tina's real form state so the form becomes dirty, Save enables,
-    // and Tina performs the normal authenticated document save. A side-channel
-    // fetch here can visually check boxes while leaving the sidebar form stale.
+    // and Tina performs the normal authenticated document save. Also update the
+    // deployed category override used by this cPanel app's public SSR fallback;
+    // Tina Cloud remains the backend source of truth, and this keeps public
+    // reflection live on hosts that do not refresh deployed source files.
     try {
       input?.onChange?.(values);
       input?.onBlur?.();
+      const hash = String(window.location.hash || "");
+      const slug = hash.split("/").filter(Boolean).pop();
+      if (slug && slug !== "~") {
+        fetch(`/tina-content-proxy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+          body: JSON.stringify({
+            query: `mutation UpdateBlogCategories($relativePath:String!,$params:BlogMutation!){ updateBlog(relativePath:$relativePath, params:$params){ categories } }`,
+            variables: { relativePath: `${slug}.mdx`, params: { categories: values } },
+          }),
+        }).catch(() => {});
+      }
     } catch (_error) {}
   }
 
