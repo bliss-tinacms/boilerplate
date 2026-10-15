@@ -34,6 +34,17 @@ export const BlogPartsFragmentDoc = gql`
       avatar
       bio
       email
+      seo {
+        __typename
+        metaTitle
+        metaDescription
+        ogTitle
+        ogDescription
+        ogImage
+        canonicalUrl
+        noindex
+        nofollow
+      }
     }
     ... on Document {
       _sys {
@@ -59,6 +70,17 @@ export const CategoryPartsFragmentDoc = gql`
   __typename
   title
   description
+  seo {
+    __typename
+    metaTitle
+    metaDescription
+    ogTitle
+    ogDescription
+    ogImage
+    canonicalUrl
+    noindex
+    nofollow
+  }
 }
     `;
 export const PagePartsFragmentDoc = gql`
@@ -393,6 +415,17 @@ export const UserPartsFragmentDoc = gql`
   avatar
   bio
   email
+  seo {
+    __typename
+    metaTitle
+    metaDescription
+    ogTitle
+    ogDescription
+    ogImage
+    canonicalUrl
+    noindex
+    nofollow
+  }
 }
     `;
 export const NavigationPartsFragmentDoc = gql`
@@ -414,6 +447,62 @@ export const NavigationPartsFragmentDoc = gql`
 export const ConfigPartsFragmentDoc = gql`
     fragment ConfigParts on Config {
   __typename
+  headerNavigation {
+    ... on Navigation {
+      __typename
+      title
+      items {
+        __typename
+        label
+        href
+        children {
+          __typename
+          label
+          href
+        }
+      }
+    }
+    ... on Document {
+      _sys {
+        filename
+        basename
+        hasReferences
+        breadcrumbs
+        path
+        relativePath
+        extension
+      }
+      id
+    }
+  }
+  footerNavigation {
+    ... on Navigation {
+      __typename
+      title
+      items {
+        __typename
+        label
+        href
+        children {
+          __typename
+          label
+          href
+        }
+      }
+    }
+    ... on Document {
+      _sys {
+        filename
+        basename
+        hasReferences
+        breadcrumbs
+        path
+        relativePath
+        extension
+      }
+      id
+    }
+  }
   favicon
   seo {
     __typename

@@ -35,7 +35,11 @@ export const islands: IslandRegistry = {
 		}),
 	},
 	author: {
-		fetch: (_request, params) => getEditableUser(params.get('slug') ?? 'admin'),
+		fetch: (_request, params) => {
+			const slug = params.get('slug');
+			if (!slug) throw new Error('Author slug is required.');
+			return getEditableUser(slug);
+		},
 		component: AuthorArchiveHeader,
 		wrapper: { tag: 'div' },
 		propsFromData: (data) => ({

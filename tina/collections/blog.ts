@@ -1,8 +1,9 @@
 import type { Collection } from "tinacms";
+import { CategoryCheckboxGroupField } from "../fields/category-checkbox-group";
 import { youTubeEmbedTemplate } from "../../src/components/mdx/YouTubeEmbed.template";
 import { seoFields } from "../fields/seo";
 import { viewFrontendField } from "../fields/view-frontend";
-import { CategoryCheckboxGroupField, CATEGORY_OPTIONS } from "../fields/category-checkbox-group";
+
 
 
 function slugifyFilename(value?: string | null): string {
@@ -52,11 +53,6 @@ function filenameFromDocument(document: any): string {
   return cleanPublicSlug(document?._sys?.filename || document?._sys?.basename || "");
 }
 
-function categoryOptions() {
-  return CATEGORY_OPTIONS;
-}
-
-
 export const BlogCollection: Collection = {
   name: "blog",
   label: "Blogs",
@@ -84,15 +80,12 @@ export const BlogCollection: Collection = {
     { name: "pubDate", label: "Publication Date", type: "datetime" },
     { name: "updatedDate", label: "Updated Date", type: "datetime" },
     {
-      name: "categories",
       label: "Categories",
+      name: "categories",
       type: "string",
       list: true,
-      options: categoryOptions(),
-      ui: {
-        component: CategoryCheckboxGroupField,
-      },
-      description: "Assign this post to one or more categories. Values save as category document paths.",
+      description: "Select one or more Category documents. Options are queried live from the Category collection; none are hardcoded in the schema or UI.",
+      ui: { component: CategoryCheckboxGroupField },
     },
 
     {

@@ -20,8 +20,8 @@ type NavigationDocument = {
 
 const { config, navigation } = Astro.props;
 const seo = config?.seo ?? null;
-const siteTitle = seo?.title || 'First For News';
-const logo = seo?.logo || '/brand-assets/a80bca69-bdf7-4a94-80eb-063779debed2.png';
+const siteTitle = seo?.title || 'Starter Site';
+const logo = seo?.logo || '';
 const menuItems = ((navigation?.items ?? []) as NavItem[]).filter((item) => item && item.label && item.href);
 ---
 
@@ -30,7 +30,9 @@ const menuItems = ((navigation?.items ?? []) as NavItem[]).filter((item) => item
   <div class="w">
     <div class="mh-in">
       <a href="/" class="mh-logo-link" aria-label={`${siteTitle} home`}>
-        <img src={logo} alt={siteTitle} data-tina-field={seo ? tinaField(seo, 'logo') : undefined} />
+        {logo
+          ? <img src={logo} alt={siteTitle} data-tina-field={seo ? tinaField(seo, 'logo') : undefined} />
+          : <span class="mh-text-logo" data-tina-field={seo ? tinaField(seo, 'title') : undefined}>{siteTitle}</span>}
       </a>
       <label class="brg" for="ntog">
         <span class="brg-b" aria-hidden="true"><i></i><i></i><i></i></span>

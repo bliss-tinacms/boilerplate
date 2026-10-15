@@ -1,20 +1,21 @@
 {
-  "favicon": "https://res.cloudinary.com/qwdyyii2/image/upload/v1791209754/boilerplate/favicon.png",
+  "headerNavigation": "src/content/navigation/header.json",
+  "footerNavigation": "src/content/navigation/footer.json",
   "seo": {
-    "title": "First For News1",
-    "description": "Timely stories, useful insights, and clear coverage of the topics that matter.1",
-    "siteOwner": "First For News",
-    "logo": "https://res.cloudinary.com/qwdyyii2/image/upload/v1791199578/boilerplate/1db87db3-4c7c-4934-99f8-3bab963d06e8.png",
-    "favicon": "https://res.cloudinary.com/qwdyyii2/image/upload/v1789664635/firstfornews/favicon.png",
-    "footerLogo": "https://res.cloudinary.com/qwdyyii2/image/upload/v1789663489/firstfornews/First-for-News-Logo.png"
+    "title": "Starter Site",
+    "description": "A clean Astro and TinaCMS starter ready for your content, brand, and services.",
+    "siteOwner": "Site Owner",
+    "logo": "",
+    "favicon": "/favicon.svg",
+    "footerLogo": ""
   },
   "contactForm": {
-    "formspreeEndpoint": "https://formspree.io/f/xppwzoep",
-    "heading": "You live here. You see things we don't.",
-    "description": "Story tips, corrections, letters, and general reader correspondence all reach a person on the newsroom staff.",
-    "buttonText": "Send to the newsroom",
-    "note": "Fields marked * are required. Read during U.S. business hours. Do not use a work account if your message is sensitive.",
-    "subject": "First For News contact form submission"
+    "formspreeEndpoint": "",
+    "heading": "Contact us",
+    "description": "Configure a unique Formspree endpoint for this site before enabling submissions.",
+    "buttonText": "Send Message",
+    "note": "This form remains disabled until its Formspree endpoint is configured.",
+    "subject": "Starter Site contact form submission"
   },
   "codeInjection": {
     "headerCode": "",

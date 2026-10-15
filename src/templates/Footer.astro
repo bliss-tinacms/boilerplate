@@ -20,7 +20,7 @@ interface Props {
 const { config, navigation } = Astro.props;
 const currentYear = new Date().getFullYear();
 const seo = config?.seo ?? null;
-const siteTitle = seo?.title || 'First For News';
+const siteTitle = seo?.title || 'Starter Site';
 // Footer Logo must drive the footer when set; fall back to the main Logo only when Footer Logo is empty.
 const footerLogo = seo?.footerLogo || seo?.logo || '/brand-assets/a80bca69-bdf7-4a94-80eb-063779debed2.png';
 const footerMenuItems = ((navigation?.items ?? []) as NavItem[]).filter((item) => item && item.label && item.href);
@@ -55,7 +55,7 @@ const fineLinks = [
   </div>
   <div class="w">
     <div class="ft-lg">
-      <p>&copy; {currentYear} First For News. All rights reserved.</p>
+      <p>&copy; {currentYear} {siteTitle}. All rights reserved.</p>
       <nav class="ft-fine" aria-label="Footer legal links">
         {fineLinks.map((item) => (
           <a href={item.href}>{item.label}</a>

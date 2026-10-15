@@ -47,8 +47,11 @@ function directoryPrefix(directory: string | null) {
 }
 
 function rootPrefix() {
-  const clean = cleanPath(process.env.CLOUDINARY_ROOT_FOLDER || process.env.CLOUDINARY_FOLDER || "boilerplate");
-  return clean ? clean + "/" : "";
+  const clean = cleanPath(process.env.CLOUDINARY_ROOT_FOLDER || process.env.CLOUDINARY_FOLDER || "");
+  if (!clean) {
+    throw new Error("Missing CLOUDINARY_ROOT_FOLDER. Each clone must use its own isolated media folder.");
+  }
+  return clean + "/";
 }
 
 function withRootPrefix(path: string) {

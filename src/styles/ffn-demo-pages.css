@@ -1,5 +1,5 @@
 
-/* First For News supplied demo templates: scoped page/archive styles. */
+/* Starter Site supplied demo templates: scoped page/archive styles. */
 .ffn-demo{--blk:#12100E;--blk2:#1b1713;--org:#EA580C;--org2:#C2410C;--wash:#F7F2EC;--line:#E6DDD4;--dim:#70675E;--san:'Barlow',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--cnd:'Barlow Condensed','Barlow','Arial Narrow',sans-serif;--dsp:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;font-family:var(--san);font-size:18px;background:#fff;color:var(--blk);-webkit-font-smoothing:antialiased}
 .ffn-demo img{max-width:100%}
 .ffn-demo .demo-img{background:linear-gradient(135deg,#2b211b,#e75b13);}

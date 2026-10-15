@@ -1,9 +1,9 @@
 export type RefObject = { title?: string | null; name?: string | null; _sys?: { filename?: string | null } | null };
 
-export function labelFromReference(reference: unknown, fallback = 'News') {
+export function labelFromReference(reference: unknown, fallback = 'News'): string {
   if (!reference) return fallback;
   if (Array.isArray(reference)) {
-    const labels = reference.map((item) => labelFromReference(item, '')).filter(Boolean);
+    const labels: string[] = reference.map((item: unknown) => labelFromReference(item, '')).filter(Boolean);
     return labels.length ? labels.join(', ') : fallback;
   }
   if (typeof reference === 'string') {
@@ -16,7 +16,7 @@ export function labelFromReference(reference: unknown, fallback = 'News') {
   return fallback;
 }
 
-export function getAuthorName(reference: unknown, fallback = 'First For News Staff') {
+export function getAuthorName(reference: unknown, fallback = 'Starter Site Staff') {
   return labelFromReference(reference, fallback);
 }
 

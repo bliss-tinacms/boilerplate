@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify First For News sitemap dynamic data + SEO output.
+"""Verify Starter Site sitemap dynamic data + SEO output.
 
 Guard for the /sitemap/ route: compares Tina backend page/post collections to
 live public sitemap DOM and checks SEO/meta output. This prevents the sitemap
@@ -30,15 +30,12 @@ def load_env_file() -> None:
 
 load_env_file()
 
-SITE = os.environ.get("SITE_URL", "https://firstfornews.net").rstrip("/")
-CLIENT_ID = (
-    os.environ.get("NEXT_PUBLIC_TINA_CLIENT_ID")
-    or os.environ.get("PUBLIC_TINA_CLIENT_ID")
-    or os.environ.get("TINA_PUBLIC_CLIENT_ID")
-    or "a9684e57-12db-4e1e-81bb-c908941e164f"
-)
+SITE = os.environ.get("SITE_URL", "https://example.com").rstrip("/")
+CLIENT_ID = os.environ.get("NEXT_PUBLIC_TINA_CLIENT_ID", "").strip()
 BRANCH = os.environ.get("NEXT_PUBLIC_TINA_BRANCH") or os.environ.get("TINA_BRANCH") or "main"
-TOKEN = os.environ.get("NEXT_PUBLIC_TINA_TOKEN") or os.environ.get("TINA_PUBLIC_TINA_TOKEN") or os.environ.get("TINA_TOKEN") or ""
+TOKEN = os.environ.get("TINA_TOKEN", "").strip()
+if not CLIENT_ID or not TOKEN:
+    raise SystemExit("NEXT_PUBLIC_TINA_CLIENT_ID and TINA_TOKEN are required.")
 TINA_URL = f"https://content.tinajs.io/2.4/content/{CLIENT_ID}/github/{BRANCH}"
 
 QUERY = """
@@ -163,12 +160,12 @@ def main() -> int:
         if (url, text) not in live_links:
             failures.append(f"missing post link {url} {text!r}")
 
-    if "Sitemap | First For News" not in normalize(parser.title_text):
+    if "Sitemap | Starter Site" not in normalize(parser.title_text):
         failures.append(f"bad <title>: {parser.title_text!r}")
-    if "Browse the public pages and latest reporting published by First For News." not in parser.meta.get("description", ""):
+    if "Browse the public pages and latest reporting published by Starter Site." not in parser.meta.get("description", ""):
         failures.append("missing sitemap meta description")
     if "ffn-demo-sitemap" not in html or "sitemap-panel" not in html or "Big Shoulders Display" not in html:
-        failures.append("missing First For News sitemap branding markers")
+        failures.append("missing Starter Site sitemap branding markers")
     if f">{len(expected_pages)}<" not in html or f">{len(expected_posts)}<" not in html:
         failures.append("dynamic page/post counts not rendered")
     if "Tina content collections" not in live_text:

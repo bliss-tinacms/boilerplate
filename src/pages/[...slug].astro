@@ -1,14 +1,13 @@
 ---
-import { getBlogPermalink, getBlogRouteSlug, getCategoryRouteSlug, getPageRouteSlug } from '../lib/permalinks';
+import { getBlogPermalink, getBlogRouteSlug, getPageRouteSlug } from '../lib/permalinks';
 import Base from '../layouts/Base.astro';
 import BlogPost from '../layouts/BlogPost.astro';
 import TinaIsland from '@tinacms/astro/TinaIsland.astro';
 import PageBody from '../components/islands/PageBody.astro';
 import BlogBody from '../components/islands/BlogBody.astro';
-import CategoryArchiveHeader from '../components/islands/CategoryArchiveHeader.astro';
 import DemoCategoryArchive from '../components/demo/DemoCategoryArchive.astro';
 import Demo404 from '../components/demo/Demo404.astro';
-import { getBlog, getCategory, getConfig, getPublicPage, getUser, listBlogs, listPages, type CmsBlog, type CmsCategory } from '../lib/data';
+import { getBlog, getCategory, getConfig, getPublicPage, listBlogs, listCategories, listPages, type CmsCategory, type CmsPage } from '../lib/data';
 import { islands } from '../lib/islands';
 
 export const prerender = false;
@@ -18,12 +17,13 @@ const routeSlug = (Astro.params.slug ?? '').toString().toLowerCase().replace(/^\
 const config = (await getConfig()).data?.config ?? null;
 const allPages = await listPages();
 const allPosts = await listBlogs();
+const allCategories = await listCategories();
 
 type ReferenceObject = { title?: string | null; name?: string | null; _sys?: { filename?: string | null } | null; };
 
 function slugify(value?: string | null) { return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
 function titleCase(value?: string | null) { return String(value || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()).trim(); }
-function labelFromReference(reference: unknown) {
+function labelFromReference(reference: unknown): string | null {
   if (!reference) return null;
   if (Array.isArray(reference)) return reference.map(labelFromReference).filter(Boolean).join(', ') || null;
   if (typeof reference === 'string') return titleCase(reference.split('/').pop()?.replace(/\.(json|mdx?)$/i, '') || '');
@@ -71,15 +71,11 @@ function parseArchiveParam(value?: string) {
   if (pageIndex >= 0) return { slug: parts.slice(0, pageIndex).join('/'), page: Math.max(1, Number(parts[pageIndex + 1] || '1') || 1) };
   return { slug: parts.join('/'), page: 1 };
 }
-function pagePath(basePath: string, page: number) { return page <= 1 ? basePath + '/' : basePath + '/page/' + page + '/'; }
-function getAuthorName(reference: unknown) { return labelFromReference(reference) || 'First For News Staff'; }
-function getPostUrl(post: CmsBlog) { const url = getBlogPermalink(post); return url.endsWith('/') ? url : url + '/'; }
-function categoryFileMap() {
-  const modules = import.meta.glob('../content/category/*.json', { eager: true });
+function categoryFileMap(categories: any[]) {
   const map = new Map<string, { label: string; filename: string; data: CmsCategory | null }>();
-  for (const [filePath, mod] of Object.entries(modules)) {
-    const filename = filePath.split('/').pop()?.replace(/\.json$/i, '') || '';
-    const data = ((mod as any).default || mod || {}) as CmsCategory;
+  for (const item of categories) {
+    const data = item as CmsCategory;
+    const filename = String((data as any)?._sys?.filename || '');
     const label = String((data as any)?.title || (data as any)?.name || titleCase(filename));
     const slug = slugify(filename || label);
     if (slug) map.set(slug, { label, filename, data: { ...(data as any), _sys: { filename } } as CmsCategory });
@@ -87,7 +83,7 @@ function categoryFileMap() {
   return map;
 }
 
-const matchedPage = allPages.find((page) => getPageRouteSlug(page) === routeSlug || page._sys.filename === routeSlug);
+const matchedPage = allPages.find((page: CmsPage) => getPageRouteSlug(page) === routeSlug || page._sys.filename === routeSlug);
 let view: 'page' | 'category' | 'blog' | 'not-found' = 'not-found';
 let pageData: any = null;
 let pageTitle = '';
@@ -104,14 +100,14 @@ if (matchedPage) {
     const seo = data.seo ?? null;
     view = 'page';
     pageData = data;
-    pageTitle = seo?.metaTitle || data.seoTitle || config?.seo?.title || 'First For News';
-    pageDescription = seo?.metaDescription || config?.seo?.description || 'Welcome to First For News.';
+    pageTitle = seo?.metaTitle || data.seoTitle || config?.seo?.title || 'Starter Site';
+    pageDescription = seo?.metaDescription || config?.seo?.description || 'Welcome to Starter Site.';
   }
 }
 
 if (view === 'not-found') {
   const parsed = parseArchiveParam(routeSlug);
-  const categories = categoryFileMap();
+  const categories = categoryFileMap(allCategories);
   const categoryEntry = categories.get(parsed.slug);
   if (categoryEntry) {
     const allCategoryPosts = allPosts.filter((post) => slugsFromReference(getPostCategories(post)).includes(parsed.slug));
@@ -134,8 +130,8 @@ if (view === 'not-found') {
       basePath: '/' + parsed.slug,
       hasPosts: posts.length > 0,
       seo: categorySeo,
-      seoTitle: categorySeo?.metaTitle || archiveTitle + ' Articles | ' + (config?.seo?.title || 'First For News'),
-      description: categorySeo?.metaDescription || editableCategory?.description || categoryEntry.data?.description || (allCategoryPosts.length > 0 ? 'Read the latest ' + archiveTitle + ' articles from First For News.' : 'Articles in the ' + archiveTitle + ' category will be published soon on First For News.'),
+      seoTitle: categorySeo?.metaTitle || archiveTitle + ' Articles | ' + (config?.seo?.title || 'Starter Site'),
+      description: categorySeo?.metaDescription || editableCategory?.description || categoryEntry.data?.description || (allCategoryPosts.length > 0 ? 'Read the latest ' + archiveTitle + ' articles from Starter Site.' : 'Articles in the ' + archiveTitle + ' category will be published soon on Starter Site.'),
     };
   }
 }
@@ -148,7 +144,6 @@ if (view === 'not-found') {
   if (data?.title || data?._sys?.filename) {
       const canonicalSlug = getBlogRouteSlug(data);
       if (canonicalSlug && canonicalSlug !== routeSlug) return Astro.redirect(getBlogPermalink(data) + '/', 301);
-      const defaultAuthor = (await getUser('admin')).data?.user ?? null;
       const currentCategoryKeys = getReferenceKeys(getPostCategories(data));
       const relatedPosts = allPosts
         .filter((post) => post._sys.filename !== documentSlug)
@@ -161,7 +156,6 @@ if (view === 'not-found') {
       blogContext = {
         documentSlug,
         data,
-        defaultAuthor,
         relatedPosts,
         layoutProps: {
           title,
@@ -181,14 +175,14 @@ if (view === 'not-found') {
 
 if (view === 'not-found') {
   Astro.response.status = 404;
-  pageTitle = '404 | Page Not Found | First For News';
+  pageTitle = '404 | Page Not Found | Starter Site';
   pageDescription = 'The page you are looking for may have moved, been removed, or never existed.';
 }
 ---
 
 {view === 'not-found' && (
   <Base title={pageTitle} description={pageDescription} noindex={true}>
-    <Demo404 posts={allPosts.slice(0, 3)} />
+    <Demo404 posts={allPosts.slice(0, 3)} categories={allCategories} />
   </Base>
 )}
 
@@ -229,7 +223,7 @@ if (view === 'not-found') {
 {view === 'blog' && blogContext && (
   <BlogPost {...blogContext.layoutProps}>
     <TinaIsland name="blog" wrapper={islands.blog.wrapper} params={{ slug: blogContext.documentSlug }} primary>
-      <BlogBody data={blogContext.data} relatedPosts={blogContext.relatedPosts} defaultAuthor={blogContext.defaultAuthor} />
+      <BlogBody data={blogContext.data} relatedPosts={blogContext.relatedPosts} />
     </TinaIsland>
   </BlogPost>
 )}

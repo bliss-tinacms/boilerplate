@@ -2,7 +2,7 @@
 import { tinaField } from '@tinacms/astro/tina-field';
 import { getBlogPermalink } from '../../lib/permalinks';
 import { labelFromReference, getAuthorName, getPostCategories } from './DemoHelpers';
-const { archiveTitle = 'Business', posts = [], currentPage = 1, totalPages = 1, basePath = '/business', category = null, showCategoryBadge = true } = Astro.props;
+const { archiveTitle = 'Category', posts = [], currentPage = 1, totalPages = 1, basePath = '/', category = null, showCategoryBadge = true } = Astro.props;
 const lead = posts[0];
 const rest = posts.slice(1);
 const hasPosts = posts.length > 0;

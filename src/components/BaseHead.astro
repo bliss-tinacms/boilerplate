@@ -29,17 +29,10 @@ const {
 	nofollow = false,
 	favicon = '/favicon.svg',
 } = Astro.props;
-const HERMES_PRODUCTION_SITE_URL = 'https://boilerplate.blissdrive.net';
+const configuredSiteUrl = Astro.site || new URL(Astro.url.origin);
 function resolveCanonicalUrl(value?: string | URL | null) {
 	const raw = value ? value.toString() : Astro.url.pathname;
-	const url = new URL(raw, HERMES_PRODUCTION_SITE_URL);
-	// Never allow localhost canonicals/social URLs on the live site.
-	if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-		return new URL(url.pathname, HERMES_PRODUCTION_SITE_URL);
-	}
-	url.protocol = 'https:';
-	url.hostname = 'boilerplate.blissdrive.net';
-	url.port = '';
+	const url = new URL(raw, configuredSiteUrl);
 	url.search = '';
 	url.hash = '';
 	return url;
@@ -47,15 +40,9 @@ function resolveCanonicalUrl(value?: string | URL | null) {
 const canonicalURL = canonicalUrl ? resolveCanonicalUrl(canonicalUrl) : resolveCanonicalUrl(Astro.url.pathname);
 const socialTitle = ogTitle || title;
 const socialDescription = ogDescription || description;
-const socialImage = image || 'https://boilerplate.blissdrive.net/mockup-assets/ff79aa4a-78e3-4ef4-afe8-72dd2f816909.jpg';
+const socialImage = image || '/favicon.svg';
 function resolveSocialImageUrl(value: string) {
-	const url = new URL(value, HERMES_PRODUCTION_SITE_URL);
-	if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || !/^https?:$/.test(url.protocol)) {
-		return new URL(url.pathname, HERMES_PRODUCTION_SITE_URL);
-	}
-	url.protocol = 'https:';
-	url.port = '';
-	return url;
+	return new URL(value, configuredSiteUrl);
 }
 const socialImageURL = resolveSocialImageUrl(socialImage);
 const robots = [noindex ? 'noindex' : 'index', nofollow ? 'nofollow' : 'follow'].join(', ');

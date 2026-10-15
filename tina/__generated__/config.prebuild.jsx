@@ -1,6 +1,86 @@
 // tina/config.ts
 import { defineConfig } from "tinacms";
 
+// tina/fields/category-checkbox-group.tsx
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCMS, wrapFieldsWithMeta } from "tinacms";
+var CATEGORY_QUERY = `
+  query DynamicCategoryOptions($after: String) {
+    categoryConnection(first: 100, after: $after) {
+      edges {
+        node {
+          title
+          _sys { path }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+function categoryReference(sys) {
+  return sys?.path?.trim() || "";
+}
+function labelFromReference(reference) {
+  return reference.split("/").pop()?.replace(/\.(json|mdx|md)$/i, "").replace(/[-_]+/g, " ") || reference;
+}
+async function fetchAllCategories(cms) {
+  if (!cms.api.tina) throw new Error("The Tina content API is not available.");
+  const options = [];
+  let after = null;
+  for (let page = 0; page < 100; page += 1) {
+    const response = await cms.api.tina.request(CATEGORY_QUERY, { variables: { after } });
+    const connection = response?.categoryConnection;
+    for (const edge of connection?.edges || []) {
+      const value = categoryReference(edge?.node?._sys);
+      if (!value) continue;
+      options.push({ label: edge?.node?.title?.trim() || labelFromReference(value), value });
+    }
+    if (!connection?.pageInfo?.hasNextPage || !connection.pageInfo.endCursor) break;
+    after = connection.pageInfo.endCursor;
+  }
+  return [...new Map(options.map((option) => [option.value, option])).values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+function CategoryCheckboxInput(props) {
+  const cms = useCMS();
+  const selected = Array.isArray(props.input.value) ? props.input.value.filter((value) => typeof value === "string") : [];
+  const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setOptions(await fetchAllCategories(cms));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load categories.");
+    } finally {
+      setLoading(false);
+    }
+  }, [cms]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const renderedOptions = useMemo(() => {
+    const known = new Set(options.map((option) => option.value));
+    const unavailable = selected.filter((value) => !known.has(value)).map((value) => ({ label: `${labelFromReference(value)} (currently unavailable)`, value }));
+    return [...options, ...unavailable];
+  }, [options, selected]);
+  function toggle(value, checked) {
+    const next = checked ? [.../* @__PURE__ */ new Set([...selected, value])] : selected.filter((item) => item !== value);
+    props.input.onChange(next);
+    props.input.onBlur?.();
+  }
+  return React.createElement("div", { style: { display: "grid", gap: "0.65rem" } }, React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" } }, React.createElement("span", { style: { color: "#64748b", fontSize: "0.85rem" } }, "Loaded from the Category collection; no options are defined in code."), React.createElement("button", { type: "button", onClick: () => void load(), disabled: loading, style: { color: "#2563eb", fontWeight: 600 } }, loading ? "Loading\u2026" : "Refresh")), error && React.createElement("div", { role: "alert", style: { color: "#b91c1c" } }, error), !loading && !error && renderedOptions.length === 0 && React.createElement("div", { style: { color: "#64748b" } }, "Create a Category document first, then click Refresh."), renderedOptions.map((option) => React.createElement("label", { key: option.value, style: { display: "flex", alignItems: "center", gap: "0.65rem", cursor: "pointer" } }, React.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: selected.includes(option.value),
+      onChange: (event) => toggle(option.value, event.currentTarget.checked)
+    }
+  ), React.createElement("span", null, option.label))));
+}
+var CategoryCheckboxGroupField = wrapFieldsWithMeta(CategoryCheckboxInput);
+
 // src/components/mdx/YouTubeEmbed.template.ts
 var youTubeEmbedTemplate = {
   name: "YouTubeEmbed",
@@ -81,7 +161,7 @@ var seoFields = {
 };
 
 // tina/fields/view-frontend.ts
-import React from "react";
+import React2 from "react";
 function normalizeSlug(value) {
   return String(value || "").toLowerCase().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "").replace(/\.(mdx?|json)$/i, "").split("/").map((part) => part.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")).filter(Boolean).join("/");
 }
@@ -104,7 +184,7 @@ function ViewFrontendComponent(kind) {
     const values = props?.form?.getState?.()?.values || {};
     const href = resolveFrontendUrl(kind, values);
     const label = kind === "blog" ? "View Post" : "View Page";
-    return React.createElement(
+    return React2.createElement(
       "div",
       {
         style: {
@@ -116,7 +196,7 @@ function ViewFrontendComponent(kind) {
           boxShadow: "0 6px 14px rgba(37, 99, 235, 0.06)"
         }
       },
-      React.createElement(
+      React2.createElement(
         "div",
         {
           style: {
@@ -130,10 +210,10 @@ function ViewFrontendComponent(kind) {
         },
         "Frontend Shortcut"
       ),
-      React.createElement(
+      React2.createElement(
         "div",
         { style: { display: "flex", gap: "10px", alignItems: "center" } },
-        React.createElement(
+        React2.createElement(
           "code",
           {
             style: {
@@ -154,7 +234,7 @@ function ViewFrontendComponent(kind) {
           },
           href
         ),
-        React.createElement(
+        React2.createElement(
           "a",
           {
             href,
@@ -179,7 +259,7 @@ function ViewFrontendComponent(kind) {
           "View"
         )
       ),
-      React.createElement(
+      React2.createElement(
         "p",
         { style: { margin: "10px 0 0", color: "#64748b", fontSize: "12px", lineHeight: 1.45 } },
         label + " opens in a new tab. Save first if you changed the permalink."
@@ -196,138 +276,6 @@ function viewFrontendField(kind) {
       component: ViewFrontendComponent(kind)
     }
   };
-}
-
-// tina/fields/category-checkbox-group.ts
-import React2 from "react";
-var CATEGORY_OPTIONS = [
-  { label: "Business", value: "src/content/category/Business.json" },
-  { label: "Featured", value: "src/content/category/Featured.json" },
-  { label: "Health", value: "src/content/category/Health.json" },
-  { label: "Lifestyle", value: "src/content/category/Lifestyle.json" },
-  { label: "Politics", value: "src/content/category/Politics.json" },
-  { label: "Technology", value: "src/content/category/Technology.json" },
-  { label: "World", value: "src/content/category/World.json" }
-];
-function basename(value) {
-  return String(value || "").split("/").pop()?.replace(/\.(json|mdx?)$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "";
-}
-function normalizeItem(item) {
-  if (!item) return [];
-  if (typeof item === "string") return [item, basename(item)];
-  if (typeof item === "object") {
-    const candidates = [
-      item.category,
-      item.value,
-      item.label,
-      item.title,
-      item.name,
-      item._sys?.path,
-      item._sys?.relativePath,
-      item._sys?.filename
-    ].filter(Boolean);
-    return candidates.flatMap((candidate) => [String(candidate), basename(candidate)]);
-  }
-  return [String(item), basename(item)];
-}
-function normalizeValue(value) {
-  const raw = Array.isArray(value) ? value : value ? [value] : [];
-  const keys = /* @__PURE__ */ new Set();
-  for (const item of raw) {
-    for (const key of normalizeItem(item)) {
-      if (key) keys.add(key);
-    }
-  }
-  return keys;
-}
-function canonicalize(value) {
-  const keys = normalizeValue(value);
-  return CATEGORY_OPTIONS.filter((option) => keys.has(option.value) || keys.has(basename(option.value)) || keys.has(option.label) || keys.has(basename(option.label))).map((option) => option.value);
-}
-function CategoryCheckboxGroupField({ input, field, disabled = false }) {
-  const [hydratedSelected, setHydratedSelected] = React2.useState(null);
-  React2.useEffect(() => {
-    try {
-      const hash = String(window.location.hash || "");
-      const slug = hash.split("/").filter(Boolean).pop();
-      if (!slug || slug === "~") return;
-      const relativePath = `${slug}.mdx`;
-      fetch(`/tina-content-proxy`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache"
-        },
-        body: JSON.stringify({
-          query: `query BlogCategoryRead($relativePath:String!){ blog(relativePath:$relativePath){ categories } }`,
-          variables: { relativePath }
-        })
-      }).then((response) => response.json()).then((payload) => {
-        const values = canonicalize(payload?.data?.blog?.categories);
-        if (values.length) setHydratedSelected(values);
-      }).catch(() => {
-      });
-    } catch (_error) {
-    }
-  }, [input?.name]);
-  const selected = hydratedSelected ?? canonicalize(input?.value);
-  const selectedSet = new Set(selected);
-  const name = input?.name || field?.name || "categories";
-  function toggle(value, checked) {
-    const next = new Set(selected);
-    if (checked) next.add(value);
-    else next.delete(value);
-    const values = CATEGORY_OPTIONS.filter((option) => next.has(option.value)).map((option) => option.value);
-    setHydratedSelected(values);
-    try {
-      const hash = String(window.location.hash || "");
-      const slug = hash.split("/").filter(Boolean).pop();
-      if (!slug || slug === "~") return;
-      fetch(`/tina-content-proxy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
-        body: JSON.stringify({
-          query: `mutation UpdateBlogCategories($relativePath:String!,$params:BlogMutation!){ updateBlog(relativePath:$relativePath, params:$params){ categories } }`,
-          variables: { relativePath: `${slug}.mdx`, params: { categories: values } }
-        })
-      }).catch(() => {
-      });
-    } catch (_error) {
-    }
-  }
-  return React2.createElement(
-    "div",
-    {
-      id: name,
-      style: { display: "flex", flexDirection: "column", gap: "0.35rem" },
-      "data-ffn-category-checkbox-group": "true",
-      "data-ffn-selected-categories": selected.join(",")
-    },
-    CATEGORY_OPTIONS.map((option) => {
-      const id = `field-${name}-option-${basename(option.value)}`;
-      const checked = selectedSet.has(option.value);
-      return React2.createElement(
-        "label",
-        {
-          key: option.value,
-          htmlFor: id,
-          style: { display: "flex", alignItems: "center", gap: "0.5rem", cursor: disabled ? "not-allowed" : "pointer", color: "#374151", fontSize: "14px" }
-        },
-        React2.createElement("input", {
-          id,
-          name,
-          type: "checkbox",
-          value: option.value,
-          checked,
-          disabled,
-          onChange: (event) => toggle(option.value, event.target.checked),
-          style: { width: "16px", height: "16px" },
-          "data-ffn-category-value": option.value
-        }),
-        React2.createElement("span", null, option.label)
-      );
-    })
-  );
 }
 
 // tina/collections/blog.ts
@@ -378,9 +326,6 @@ function cleanPublicSlug(value) {
 function filenameFromDocument(document) {
   return cleanPublicSlug(document?._sys?.filename || document?._sys?.basename || "");
 }
-function categoryOptions() {
-  return CATEGORY_OPTIONS;
-}
 var BlogCollection = {
   name: "blog",
   label: "Blogs",
@@ -407,15 +352,12 @@ var BlogCollection = {
     { name: "pubDate", label: "Publication Date", type: "datetime" },
     { name: "updatedDate", label: "Updated Date", type: "datetime" },
     {
-      name: "categories",
       label: "Categories",
+      name: "categories",
       type: "string",
       list: true,
-      options: categoryOptions(),
-      ui: {
-        component: CategoryCheckboxGroupField
-      },
-      description: "Assign this post to one or more categories. Values save as category document paths."
+      description: "Select one or more Category documents. Options are queried live from the Category collection; none are hardcoded in the schema or UI.",
+      ui: { component: CategoryCheckboxGroupField }
     },
     {
       name: "author",
@@ -457,7 +399,8 @@ var CategoryCollection = {
       ui: {
         component: "textarea"
       }
-    }
+    },
+    seoFields
   ]
 };
 
@@ -471,6 +414,20 @@ var GlobalConfigCollection = {
     global: true
   },
   fields: [
+    {
+      name: "headerNavigation",
+      label: "Header Navigation",
+      type: "reference",
+      collections: ["navigation"],
+      description: "Choose the Navigation document used in the site header."
+    },
+    {
+      name: "footerNavigation",
+      label: "Footer Navigation",
+      type: "reference",
+      collections: ["navigation"],
+      description: "Choose the Navigation document used in the site footer."
+    },
     {
       name: "favicon",
       label: "Favicon",
@@ -1315,19 +1272,20 @@ var UserCollection = {
       type: "string",
       name: "email",
       label: "Email"
-    }
+    },
+    seoFields
   ]
 };
 
 // tina/config.ts
 var branch = process.env.NEXT_PUBLIC_TINA_BRANCH || process.env.TINA_BRANCH || process.env.PUBLIC_TINA_BRANCH || process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF || process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || process.env.WORKERS_CI_BRANCH || process.env.CF_PAGES_BRANCH || process.env.HEAD || "main";
 var config_default = defineConfig({
-  contentApiUrlOverride: process.env.NEXT_PUBLIC_TINA_CONTENT_API_URL || process.env.TINA_PUBLIC_TINA_CONTENT_API_URL,
+  contentApiUrlOverride: process.env.TINA_DIRECT_CLOUD_CHECK === "1" ? void 0 : process.env.NEXT_PUBLIC_TINA_CONTENT_API_URL,
   branch,
-  // Get this from tina.io
-  clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID || process.env.PUBLIC_TINA_CLIENT_ID || process.env.TINA_PUBLIC_CLIENT_ID || "40bc8cd1-d0fe-4061-b99c-d91be2de59e0",
-  // Get this from tina.io
-  token: process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN,
+  // Every independently provisioned site must provide its own Tina project credentials.
+  // `validate:site` fails before deployment when these are absent.
+  clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID || "",
+  token: process.env.TINA_TOKEN || "",
   media: {
     loadCustomStore: async () => {
       const pack = await import("next-tinacms-cloudinary");

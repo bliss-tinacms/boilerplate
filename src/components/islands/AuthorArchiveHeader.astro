@@ -7,8 +7,8 @@ interface Props {
 }
 
 const { user = null } = Astro.props;
-const authorName = user?.name || 'Author';
-const initials = authorName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'FN';
+const authorName = String(user?.name || 'Author');
+const initials = authorName.split(/\s+/).filter(Boolean).slice(0, 2).map((part: string) => part[0]?.toUpperCase()).join('') || 'SE';
 ---
 
 <header class="author-archive__header">

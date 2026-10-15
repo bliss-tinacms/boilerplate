@@ -20,13 +20,15 @@ const branch =
   "main";
 
 export default defineConfig({
-  contentApiUrlOverride: process.env.NEXT_PUBLIC_TINA_CONTENT_API_URL || process.env.TINA_PUBLIC_TINA_CONTENT_API_URL,
+  contentApiUrlOverride: process.env.TINA_DIRECT_CLOUD_CHECK === "1"
+    ? undefined
+    : process.env.NEXT_PUBLIC_TINA_CONTENT_API_URL,
   branch,
 
-  // Get this from tina.io
-  clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID || process.env.PUBLIC_TINA_CLIENT_ID || process.env.TINA_PUBLIC_CLIENT_ID || "40bc8cd1-d0fe-4061-b99c-d91be2de59e0",
-  // Get this from tina.io
-  token: process.env.NEXT_PUBLIC_TINA_TOKEN || process.env.TINA_PUBLIC_TINA_TOKEN || process.env.TINA_TOKEN,
+  // Every independently provisioned site must provide its own Tina project credentials.
+  // `validate:site` fails before deployment when these are absent.
+  clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID || "",
+  token: process.env.TINA_TOKEN || "",
     media: {
     loadCustomStore: async () => {
       const pack = await import("next-tinacms-cloudinary");

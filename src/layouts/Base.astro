@@ -17,8 +17,8 @@ interface Props {
 
 const { title, description, image, ogTitle, ogDescription, canonicalUrl, noindex, nofollow } = Astro.props;
 const config = (await getConfig()).data?.config ?? null;
-const headerNavigation = (await getHeaderNavigation()).data?.navigation ?? null;
-const footerNavigation = (await getFooterNavigation()).data?.navigation ?? null;
+const headerNavigation = (await getHeaderNavigation(config)).data?.navigation ?? null;
+const footerNavigation = (await getFooterNavigation(config)).data?.navigation ?? null;
 const headerCode = config?.codeInjection?.headerCode?.trim() || '';
 const footerCode = config?.codeInjection?.footerCode?.trim() || '';
 const favicon = config?.seo?.favicon || config?.favicon || '/favicon.svg';

@@ -4,11 +4,8 @@ Edit your site visually in the browser, ship it as fast static HTML.
 
 ## Getting started
 
-Create the project:
-
-```sh
-pnpm dlx create-tina-app@latest --template tina-astro-starter
-```
+Clone this repository into a new repository for the site. Do not copy a deployed
+cPanel directory: this repository is the migration source of truth.
 
 Install dependencies:
 
@@ -35,7 +32,7 @@ pnpm dev
 - Tailwind CSS v4 block builder: Hero, CTA, Features, Stats, Testimonial, Callout, Content, Split, and Video
 - Light/dark theme toggle with a Tina-ember space theme
 - Markdown and MDX with `<TinaMarkdown>` rich-text rendering
-- Collections for Pages, Blog, and global Config
+- Collections for Pages, Blog, Category, User, Navigation, and global Config
 - Astro view transitions, SEO meta, OpenGraph, sitemap, and RSS
 - Icons via [`astro-icon`](https://github.com/natemoo-re/astro-icon) and the Tabler set
 
@@ -43,15 +40,60 @@ pnpm dev
 
 The starter is host-neutral — it isn't tied to any one platform. Every content page is prerendered to static HTML; the only on-demand route is the `/tina-island` endpoint that powers live visual editing.
 
-`astro.config.mjs` picks the right adapter automatically from the platform's build environment — [Vercel](https://docs.astro.build/en/guides/integrations-guide/vercel/), [Cloudflare](https://docs.astro.build/en/guides/integrations-guide/cloudflare/) (Pages or Workers) and [Netlify](https://docs.astro.build/en/guides/integrations-guide/netlify/) are detected and configured with no changes, and anywhere else falls back to a portable [Node](https://docs.astro.build/en/guides/integrations-guide/node/) server you can run with `node ./dist/server/entry.mjs`. The bundled `wrangler.jsonc` targets Cloudflare Workers and enables `nodejs_compat`, which the editing route's `node:async_hooks` needs.
+`astro.config.mjs` picks the right adapter automatically from the platform's build environment — [Vercel](https://docs.astro.build/en/guides/integrations-guide/vercel/), [Cloudflare](https://docs.astro.build/en/guides/integrations-guide/cloudflare/) (Pages or Workers) and [Netlify](https://docs.astro.build/en/guides/integrations-guide/netlify/) are detected and configured with no changes, and anywhere else falls back to a portable [Node](https://docs.astro.build/en/guides/integrations-guide/node/) server started with `pnpm start` / `node app.mjs`.
 
 Set `SITE_URL` to your production URL — it feeds the sitemap, RSS, and OpenGraph tags; see `.env.example`. Most platforms inject their own deploy URL as a fallback, but Cloudflare Workers exposes none, so set `SITE_URL` there to avoid `localhost` canonicals.
 
 ### Before your first deploy: TinaCloud credentials
 
-The default `pnpm build` compiles the CMS against TinaCloud, so it needs your project credentials. Without them it fails fast with `ERR_MISSING_CLOUD_CREDS`. Create a project at [app.tina.io](https://app.tina.io), then set `PUBLIC_TINA_CLIENT_ID` and `TINA_TOKEN` (see `.env.example`) in your host's environment variables.
+The default `pnpm build` compiles the CMS against TinaCloud, so it needs the complete per-site runtime configuration. Create a project at [app.tina.io](https://app.tina.io), then provision the site as described below. The required variables include `NEXT_PUBLIC_TINA_CLIENT_ID`, `TINA_TOKEN`, `NEXT_PUBLIC_TINA_BRANCH`, `GITHUB_CONTENT_REPO`, a unique Cloudinary folder and `NEXT_PUBLIC_TINA_CONTENT_API_URL`.
 
 To build without TinaCloud — a purely local/offline build with no auth — run `pnpm build:local` instead, which skips the cloud checks.
+
+## Provisioning many independent sites
+
+Each new publisher must have its own repository, Tina project/client ID and token,
+site URL, and Cloudinary folder. Never copy the boilerplate's `.env`, generated
+`public/admin/` directory, Tina identity, Formspree form, or service credentials.
+
+1. Clone this repository into the new site's repository.
+2. Copy `site.manifest.example.json` to an ignored file such as
+   `site.manifest.json` and replace every placeholder. Use
+   `"mode": "independent"` for a new site. `"same-site-migration"` is only for
+   moving an existing domain while deliberately preserving that site's service
+   identities.
+3. Run the source checks before the first push:
+
+   ```sh
+   pnpm install --frozen-lockfile
+   pnpm site:provision -- --manifest site.manifest.json
+   pnpm validate:site
+   pnpm build:local
+   pnpm astro check
+   ```
+
+   Provisioning writes a mode-`0600`, ignored `.env` and updates the neutral site
+   identity in `src/content/config/config.json`. It refuses placeholders and, for
+   independent sites, rejects the source boilerplate's domain, Tina project,
+   repository and Cloudinary identity.
+
+4. Commit the new site's source and push its Tina branch. Wait for Tina Cloud to
+   index that branch, then run `pnpm build`. The production build intentionally
+   checks the schema directly against Tina Cloud before generating the proxy-based
+   deployed admin bundle, so a stale or unauthorized branch fails instead of
+   silently shipping.
+5. Create a unique Formspree form and set its endpoint in the manifest or through
+   Tina Global Config. Test that exact endpoint before enabling submissions.
+6. Deploy `dist/server/`, `dist/client/`, `public/admin/`, `src/content/`,
+   `app.mjs`, package files and the site's untracked environment as one atomic
+   release. Never reuse a generated admin bundle from another site.
+7. Complete the logged-in Tina acceptance test: collections and SEO fields,
+   existing multi-category selections, a temporary dynamic Category, Save →
+   public reflection → exact reversion, navigation references, media upload and
+   cleanup, and the live Formspree endpoint.
+
+Before committing the source boilerplate itself, run `pnpm validate:starter`,
+`pnpm build:local`, `pnpm astro check`, a tracked-secret scan, and `git diff --check`.
 
 ## A note on React
 

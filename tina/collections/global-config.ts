@@ -15,6 +15,20 @@ export const GlobalConfigCollection: Collection = {
   },
   fields: [
     {
+      name: "headerNavigation",
+      label: "Header Navigation",
+      type: "reference",
+      collections: ["navigation"],
+      description: "Choose the Navigation document used in the site header.",
+    },
+    {
+      name: "footerNavigation",
+      label: "Footer Navigation",
+      type: "reference",
+      collections: ["navigation"],
+      description: "Choose the Navigation document used in the site footer.",
+    },
+    {
       name: "favicon",
       label: "Favicon",
       type: "image",

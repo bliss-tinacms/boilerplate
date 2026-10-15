@@ -1,425 +1,45 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import matter from 'gray-matter';
 import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
+function env(...names: string[]) {
+  for (const name of names) {
+    const value = import.meta.env[name] || process.env[name];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
 function getClientId() {
-  return (
-    import.meta.env.NEXT_PUBLIC_TINA_CLIENT_ID ||
-    import.meta.env.PUBLIC_TINA_CLIENT_ID ||
-    import.meta.env.TINA_PUBLIC_CLIENT_ID ||
-    process.env.NEXT_PUBLIC_TINA_CLIENT_ID ||
-    process.env.PUBLIC_TINA_CLIENT_ID ||
-    process.env.TINA_PUBLIC_CLIENT_ID ||
-    ''
-  );
+  return env('NEXT_PUBLIC_TINA_CLIENT_ID');
 }
 
 function getBranch() {
-  return (
-    import.meta.env.NEXT_PUBLIC_TINA_BRANCH ||
-    import.meta.env.TINA_BRANCH ||
-    process.env.NEXT_PUBLIC_TINA_BRANCH ||
-    process.env.TINA_BRANCH ||
-    'main'
-  );
+  return env('NEXT_PUBLIC_TINA_BRANCH', 'TINA_BRANCH') || 'main';
 }
 
-function getLocalHomepageData() {
-  try {
-    const filePath = join(process.cwd(), 'src', 'content', 'page', 'home.mdx');
-    const parsed = matter(readFileSync(filePath, 'utf8'));
-    return parsed.data && Object.keys(parsed.data).length ? parsed.data : null;
-  } catch (_error) {
-    return null;
-  }
-}
-
-function getLocalConfigData() {
-  try {
-    const filePath = join(process.cwd(), 'src', 'content', 'config', 'config.json');
-    return JSON.parse(readFileSync(filePath, 'utf8'));
-  } catch (_error) {
-    return null;
-  }
-}
-
-function getLocalBlogData(relativePath?: string) {
-  if (!relativePath) return null;
-  try {
-    const filename = relativePath.endsWith('.mdx') ? relativePath : `${relativePath}.mdx`;
-    const filePath = join(process.cwd(), 'src', 'content', 'blog', filename);
-    const parsed = matter(readFileSync(filePath, 'utf8'));
-    if (!parsed.data || !Object.keys(parsed.data).length) return null;
-    const data: Record<string, any> = { ...parsed.data };
-    for (const key of ['pubDate', 'updatedDate']) {
-      if (data[key] instanceof Date) data[key] = data[key].toISOString();
-    }
-    return {
-      ...data,
-      _sys: { filename: filename.replace(/\.mdx$/, ''), relativePath: filename },
-    };
-  } catch (_error) {
-    return null;
-  }
-}
-
-function blogOverridePath() {
-  return join(process.cwd(), '.tina-blog-category-overrides.json');
-}
-
-function readBlogOverrides(): Record<string, any> {
-  try {
-    return JSON.parse(readFileSync(blogOverridePath(), 'utf8'));
-  } catch (_error) {
-    return {};
-  }
-}
-
-function getBlogOverride(relativePath?: string) {
-  if (!relativePath) return null;
-  const filename = relativePath.endsWith('.mdx') ? relativePath : `${relativePath}.mdx`;
-  return readBlogOverrides()[filename] ?? null;
-}
-
-function persistBlogCategoryOverride(bodyText: string) {
-  try {
-    if (!queryTargetsBlog(bodyText)) return;
-    const payload = JSON.parse(bodyText || '{}');
-    const variables = payload?.variables ?? {};
-    const relativePath = variables.relativePath || variables.path;
-    if (!relativePath) return;
-    const filename = relativePath.endsWith('.mdx') ? relativePath : `${relativePath}.mdx`;
-    const directParams = variables.params ?? {};
-    const blogParams = directParams.blog ?? directParams;
-    const categories = normalizeBlogCategoryList(blogParams.categories ?? []);
-    const hasBlogParams = blogParams && typeof blogParams === 'object' && Object.keys(blogParams).length > 0;
-    if (!categories.length && !hasBlogParams) return;
-    const overrides = readBlogOverrides();
-    overrides[filename] = {
-      ...(overrides[filename] ?? {}),
-      ...blogParams,
-      ...(categories.length ? { categories } : {}),
-      ...(blogParams.body ? { body: normalizeTinaRichText(blogParams.body) } : {}),
-      _sys: { filename: filename.replace(/\.mdx$/, ''), relativePath: filename },
-      updatedAt: new Date().toISOString(),
-    };
-    writeFileSync(blogOverridePath(), JSON.stringify(overrides, null, 2) + '\n');
-  } catch (_error) {
-    // Do not block the Tina save if deployed storage is unavailable.
-  }
-}
-
-function persistLocalConfigAdditionsFromMutation(bodyText: string) {
-  try {
-    if (!queryTargetsConfig(bodyText)) return;
-    const payload = JSON.parse(bodyText || '{}');
-    const params = payload?.variables?.params;
-    const directValue = params?.seo?.defaultSocialImage;
-    const nestedValue = params?.config?.seo?.defaultSocialImage;
-    const defaultSocialImage = nestedValue || directValue;
-    const directRedirects = params?.redirects;
-    const nestedRedirects = params?.config?.redirects;
-    const redirects = Array.isArray(nestedRedirects)
-      ? nestedRedirects
-      : Array.isArray(directRedirects)
-        ? directRedirects
-        : undefined;
-    if ((!defaultSocialImage || typeof defaultSocialImage !== 'string') && !redirects) return;
-
-    const filePath = join(process.cwd(), 'src', 'content', 'config', 'config.json');
-    const localConfig = JSON.parse(readFileSync(filePath, 'utf8'));
-    if (defaultSocialImage && typeof defaultSocialImage === 'string') {
-      localConfig.seo = { ...(localConfig.seo ?? {}), defaultSocialImage };
-    }
-    if (redirects) {
-      localConfig.redirects = redirects;
-    }
-    writeFileSync(filePath, JSON.stringify(localConfig, null, 2) + '\n');
-  } catch (_error) {
-    // Do not block the Tina save retry if the deployed filesystem is read-only.
-  }
-}
-
-function queryTargetsHomepage(bodyText: string) {
-  try {
-    const payload = JSON.parse(bodyText || '{}');
-    const variables = payload?.variables ?? {};
-    const relativePath = variables.relativePath || variables.relativePath__homepage || variables.path;
-    const query = String(payload?.query || '');
-    return relativePath === 'home.mdx' && /\bpage\s*\(/.test(query);
-  } catch (_error) {
-    return false;
-  }
-}
-
-function queryTargetsBlog(bodyText: string) {
-  try {
-    const payload = JSON.parse(bodyText || '{}');
-    const variables = payload?.variables ?? {};
-    const relativePath = variables.relativePath || variables.path;
-    const query = String(payload?.query || '');
-    return typeof relativePath === 'string' && (
-      /\b(blog|updateBlog|createBlog)\s*\(/.test(query) ||
-      (/\b(createDocument|updateDocument)\s*\(/.test(query) && (variables.collection === 'blog' || variables.collectionName === 'blog'))
-    );
-  } catch (_error) {
-    return false;
-  }
-}
-
-function normalizeBlogCategoryList(categories: any) {
-  if (!Array.isArray(categories)) return [];
-  return categories
-    .map((item) => (typeof item === 'string' ? item : item?.category))
+function configuredOrigins() {
+  return env('TINA_ALLOWED_ORIGINS', 'ALLOWED_ORIGINS')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);
 }
 
-function normalizeTinaRichText(value: any) {
-  if (typeof value !== 'string') return value;
-  const text = value.trim();
-  return {
-    type: 'root',
-    children: text
-      ? [{ type: 'p', children: [{ type: 'text', text }] }]
-      : [{ type: 'p', children: [{ type: 'text', text: '' }] }],
-  };
+function requestOrigin(request: Request) {
+  return new URL(request.url).origin;
 }
 
-function normalizeBlogMutationParams(params: any) {
-  if (!params || typeof params !== 'object') return params;
-  const next = { ...params };
-  if (Object.prototype.hasOwnProperty.call(next, 'body')) {
-    next.body = normalizeTinaRichText(next.body);
-  }
-  if (Object.prototype.hasOwnProperty.call(next, 'categories')) {
-    const categories = normalizeBlogCategoryList(next.categories);
-    if (categories.length && !next.category) next.category = categories[0];
-    delete next.categories;
-  }
-  return next;
-}
-
-function queryTargetsConfig(bodyText: string) {
-  try {
-    const payload = JSON.parse(bodyText || '{}');
-    const variables = payload?.variables ?? {};
-    const relativePath = variables.relativePath || variables.path;
-    const collection = variables.collection || variables.collectionName || '';
-    const query = String(payload?.query || '');
-    return (
-      relativePath === 'config.json' &&
-      (/\b(config|updateConfig|createConfig)\s*\(/.test(query) ||
-        /\b(updateDocument|createDocument)\s*\(/.test(query) ||
-        collection === 'config' ||
-        /collection\s*:\s*"config"/.test(query))
-    );
-  } catch (_error) {
-    return false;
-  }
-}
-
-function overrideHomepageResponse(text: string, bodyText: string) {
-  if (!queryTargetsHomepage(bodyText)) return text;
-  const localHome = getLocalHomepageData();
-  if (!localHome) return text;
-  try {
-    const json = JSON.parse(text);
-    if (json?.data?.page) {
-      json.data.page = {
-        ...json.data.page,
-        ...localHome,
-        _sys: json.data.page._sys ?? { filename: 'home', relativePath: 'home.mdx' },
-      };
-      return JSON.stringify(json);
-    }
-  } catch (_error) {
-    return text;
-  }
-  return text;
-}
-
-function overrideConfigResponse(text: string, bodyText: string) {
-  if (!queryTargetsConfig(bodyText)) return text;
-  const localConfig = getLocalConfigData();
-  if (!localConfig) return text;
-  try {
-    const json = JSON.parse(text);
-    if (json?.data?.config) {
-      json.data.config = {
-        ...json.data.config,
-        redirects: localConfig.redirects ?? json.data.config.redirects ?? [],
-        seo: {
-          ...(json.data.config.seo ?? {}),
-          ...(localConfig.seo ?? {}),
-        },
-      };
-      return JSON.stringify(json);
-    }
-  } catch (_error) {
-    return text;
-  }
-  return text;
-}
-
-function overrideBlogResponse(text: string, bodyText: string) {
-  if (!queryTargetsBlog(bodyText)) return text;
-  try {
-    const payload = JSON.parse(bodyText || '{}');
-    const relativePath = payload?.variables?.relativePath || payload?.variables?.path;
-    const localBlog = getLocalBlogData(relativePath);
-    const override = getBlogOverride(relativePath);
-    const params = payload?.variables?.params ?? {};
-    const blogParams = params.blog ?? params;
-    const requestedCategories = normalizeBlogCategoryList(blogParams.categories ?? []);
-    const json = JSON.parse(text || '{}');
-    if (!json.data) json.data = {};
-    const targetKeys = /\bupdateBlog\s*\(/.test(String(payload.query || ''))
-      ? ['updateBlog']
-      : /\bcreateBlog\s*\(/.test(String(payload.query || ''))
-        ? ['createBlog']
-        : /\b(createDocument|updateDocument)\s*\(/.test(String(payload.query || ''))
-          ? [String(payload.query || '').includes('createDocument') ? 'createDocument' : 'updateDocument']
-          : ['blog'];
-    for (const key of targetKeys) {
-      const existing = json.data[key] ?? {};
-      const overrideCategories = normalizeBlogCategoryList(override?.categories ?? []);
-      const localCategories = normalizeBlogCategoryList((localBlog as any)?.categories ?? []);
-      const existingCategories = normalizeBlogCategoryList(existing.categories ?? (existing.category ? [existing.category] : []));
-      const categories = requestedCategories.length
-        ? requestedCategories
-        : overrideCategories.length
-          ? overrideCategories
-          : localCategories.length
-            ? localCategories
-            : existingCategories;
-      const merged = {
-        ...existing,
-        ...(localBlog ?? {}),
-        ...(override ?? {}),
-        categories,
-      };
-      delete (merged as Record<string, any>).category;
-      json.data[key] = merged;
-    }
-    if (Array.isArray(json.errors)) {
-      json.errors = json.errors.filter((error: any) => !/Cannot query field\s+\"categories\"/.test(String(error?.message || '')));
-      if (!json.errors.length) delete json.errors;
-    }
-    return JSON.stringify(json);
-  } catch (_error) {
-    return text;
-  }
-}
-
-function responseHasUnsupportedFieldError(text: string) {
-  try {
-    const json = JSON.parse(text);
-    const errors = Array.isArray(json?.errors) ? json.errors : [];
-    return errors.some((error: any) => {
-      const message = String(error?.message || '');
-      return (
-        /Cannot query field\s+\"(seo|experience|focus|defaultSocialImage|redirects|categories)\"/.test(message) ||
-        (/Variable\s+\"\$params\"\s+got invalid value/.test(message) && /(defaultSocialImage|redirects|categories|Expected object, received string|invalid_type)/.test(message)) ||
-        (/Field\s+\"defaultSocialImage\"\s+is not defined by type\s+\"ConfigSeoMutation\"/.test(message)) ||
-        (/Field\s+\"redirects\"\s+is not defined by type\s+\"ConfigMutation\"/.test(message))
-      );
-    });
-  } catch (_error) {
-    return false;
-  }
-}
-
-function stripUnsupportedLaggingSchemaFields(bodyText: string) {
-  try {
-    const payload = JSON.parse(bodyText || '{}');
-    if (typeof payload.query !== 'string') return bodyText;
-
-    // Tina Cloud schemas can lag behind deployed local source after adding
-    // collection/block fields. Retry without optional fields instead of
-    // crashing the admin content fetch.
-    let query = payload.query;
-    query = query.replace(/\bseo\s*\{[^{}]*\}/g, '');
-    query = query.replace(/\bexperience\b/g, '');
-    query = query.replace(/\bfocus\b/g, '');
-    query = query.replace(/\bdefaultSocialImage\b/g, '');
-    query = query.replace(/\bcategories\s*\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}/g, '');
-    query = query.replace(/^\s*categories\s*$/gm, '');
-    query = query.replace(/\bcategories\b/g, '');
-    query = query.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
-
-    const variables = payload.variables ? { ...payload.variables } : payload.variables;
-    if (variables?.params) {
-      let params = { ...variables.params };
-      if (variables.collection === 'blog' || variables.collectionName === 'blog') {
-        params = normalizeBlogMutationParams(params);
-        if (params.blog) params.blog = normalizeBlogMutationParams(params.blog);
-      } else {
-        params = normalizeBlogMutationParams(params);
-      }
-      variables.params = params;
-    }
-
-    return JSON.stringify({ ...payload, query, variables });
-  } catch (_error) {
-    return bodyText;
-  }
-}
-
-function stripConfigLaggingSchemaFields(bodyText: string) {
-  try {
-    const payload = JSON.parse(bodyText || '{}');
-    if (typeof payload.query !== 'string') return bodyText;
-    let query = payload.query
-      .replace(/\bdefaultSocialImage\b/g, '')
-      .replace(/\bredirects\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '')
-      .replace(/seo\s*\{\s*\}/g, '')
-      .replace(/\.\.\.\s+on\s+Config\s*\{\s*\}/g, '... on Config { _sys { filename } }')
-      .replace(/[ \t]+\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n');
-
-    const variables = payload.variables ? { ...payload.variables } : payload.variables;
-    const params = variables?.params ? { ...variables.params } : variables?.params;
-    const stripSeo = (container: any) => {
-      if (!container?.seo) return container;
-      const seo = { ...container.seo };
-      if (Object.prototype.hasOwnProperty.call(seo, 'defaultSocialImage')) {
-        delete seo.defaultSocialImage;
-        return { ...container, seo };
-      }
-      return container;
-    };
-    if (params) {
-      const nextParams = { ...params };
-      Object.assign(nextParams, stripSeo(nextParams));
-      if (nextParams.config) nextParams.config = stripSeo({ ...nextParams.config });
-      if (Object.prototype.hasOwnProperty.call(nextParams, 'redirects')) delete nextParams.redirects;
-      if (nextParams.config && Object.prototype.hasOwnProperty.call(nextParams.config, 'redirects')) {
-        delete nextParams.config.redirects;
-      }
-      variables.params = nextParams;
-    }
-
-    return JSON.stringify({ ...payload, query, variables });
-  } catch (_error) {
-    return bodyText;
-  }
+function isAllowedOrigin(request: Request) {
+  const origin = request.headers.get('origin');
+  if (!origin) return true;
+  const normalized = origin.replace(/\/$/, '');
+  return normalized === requestOrigin(request) || configuredOrigins().includes(normalized);
 }
 
 function corsHeaders(request: Request) {
-  const origin = request.headers.get('origin') || 'https://boilerplate.blissdrive.net';
-  const allowed = new Set([
-    'https://boilerplate.blissdrive.net',
-    'https://boilerplate.blissdrive.net',
-    'http://localhost:4321',
-  ]);
-
+  const origin = request.headers.get('origin');
   return {
-    'Access-Control-Allow-Origin': allowed.has(origin)
-      ? origin
-      : 'https://boilerplate.blissdrive.net',
+    ...(origin && isAllowedOrigin(request) ? { 'Access-Control-Allow-Origin': origin } : {}),
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-KEY',
     'Access-Control-Max-Age': '86400',
@@ -427,113 +47,67 @@ function corsHeaders(request: Request) {
   };
 }
 
-export const OPTIONS: APIRoute = ({ request }) =>
-  new Response(null, { status: 204, headers: corsHeaders(request) });
-
-export const GET: APIRoute = ({ request }) =>
-  new Response(JSON.stringify({ error: 'Method not allowed' }), {
-    status: 405,
+function jsonResponse(request: Request, body: unknown, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
     headers: {
       ...corsHeaders(request),
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
     },
   });
+}
+
+export const OPTIONS: APIRoute = ({ request }) => {
+  if (!isAllowedOrigin(request)) return jsonResponse(request, { error: 'Origin not allowed' }, 403);
+  return new Response(null, { status: 204, headers: corsHeaders(request) });
+};
+
+export const GET: APIRoute = ({ request }) =>
+  jsonResponse(request, { error: 'Method not allowed' }, 405);
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!isAllowedOrigin(request)) return jsonResponse(request, { error: 'Origin not allowed' }, 403);
+
   const clientId = getClientId();
-  const branch = getBranch();
+  if (!clientId) return jsonResponse(request, { error: 'Missing Tina client ID' }, 500);
 
-  if (!clientId) {
-    return new Response(JSON.stringify({ error: 'Missing Tina Client ID' }), {
-      status: 500,
-      headers: {
-        ...corsHeaders(request),
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-    });
-  }
-
-  const upstream = `https://content.tinajs.io/2.4/content/${encodeURIComponent(
-    clientId
-  )}/github/${encodeURIComponent(branch)}`;
-
-  const body = await request.text();
-  persistBlogCategoryOverride(body);
-
+  const upstream = `https://content.tinajs.io/2.4/content/${encodeURIComponent(clientId)}/github/${encodeURIComponent(getBranch())}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Accept: 'application/json, text/plain, */*',
+    Accept: 'application/json',
     'Accept-Encoding': 'identity',
   };
 
   const authorization = request.headers.get('authorization');
-  if (authorization) {
-    headers.Authorization = authorization;
-  }
+  if (authorization) headers.Authorization = authorization;
 
-  const apiKey =
-    request.headers.get('x-api-key') ||
-    import.meta.env.NEXT_PUBLIC_TINA_TOKEN ||
-    import.meta.env.TINA_TOKEN ||
-    process.env.NEXT_PUBLIC_TINA_TOKEN ||
-    process.env.TINA_TOKEN ||
-    '';
-
-  if (apiKey) {
-    headers['X-API-KEY'] = apiKey;
-  }
+  // Never elevate an anonymous browser request with the server-side Tina token.
+  // SSR callers and authenticated Tina clients must explicitly forward their own
+  // X-API-KEY or Authorization header; the proxy only relays credentials.
+  const apiKey = request.headers.get('x-api-key');
+  if (apiKey) headers['X-API-KEY'] = apiKey;
 
   try {
     const upstreamResponse = await fetch(upstream, {
       method: 'POST',
       headers,
-      body,
+      body: await request.text(),
     });
-
-    let text = overrideBlogResponse(overrideConfigResponse(overrideHomepageResponse(await upstreamResponse.text(), body), body), body);
-    let status = upstreamResponse.status;
-    let contentType = upstreamResponse.headers.get('content-type') || 'application/json; charset=utf-8';
-
-    if (responseHasUnsupportedFieldError(text)) {
-      if (queryTargetsConfig(body)) persistLocalConfigAdditionsFromMutation(body);
-      const retryBody = queryTargetsConfig(body)
-        ? stripConfigLaggingSchemaFields(body)
-        : stripUnsupportedLaggingSchemaFields(body);
-      if (retryBody !== body) {
-        const retryResponse = await fetch(upstream, {
-          method: 'POST',
-          headers,
-          body: retryBody,
-        });
-        status = retryResponse.status;
-        contentType = retryResponse.headers.get('content-type') || contentType;
-        text = overrideBlogResponse(overrideConfigResponse(overrideHomepageResponse(await retryResponse.text(), retryBody), body), body);
-      }
-    }
-
-    return new Response(text, {
-      status,
+    return new Response(await upstreamResponse.text(), {
+      status: upstreamResponse.status,
       headers: {
         ...corsHeaders(request),
-        'Content-Type': contentType,
+        'Content-Type': upstreamResponse.headers.get('content-type') || 'application/json; charset=utf-8',
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        'X-Splash-Tina-Proxy': 'astro-identity',
+        'X-Tina-Proxy': 'transparent',
       },
     });
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error: 'Tina proxy failed',
-        message: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 502,
-        headers: {
-          ...corsHeaders(request),
-          'Content-Type': 'application/json; charset=utf-8',
-        },
-      }
+    return jsonResponse(
+      request,
+      { error: 'Tina proxy failed', message: error instanceof Error ? error.message : String(error) },
+      502,
     );
   }
 };

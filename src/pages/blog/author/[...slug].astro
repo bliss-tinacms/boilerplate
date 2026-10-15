@@ -2,7 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import TinaIsland from '@tinacms/astro/TinaIsland.astro';
 import DemoAuthorArchive from '../../../components/demo/DemoAuthorArchive.astro';
-import { getConfig, getUser, listBlogs, type CmsBlog } from '../../../lib/data';
+import { getConfig, getUser, listBlogs } from '../../../lib/data';
 import { islands } from '../../../lib/islands';
 
 export const prerender = false;
@@ -35,11 +35,11 @@ const allPosts = (await listBlogs()).filter((post) => slugFromReference(post.aut
 const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
 const currentPage = Math.min(Math.max(1, parsed.page), totalPages);
 const posts = allPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
-const editableAuthor = (await getUser(parsed.slug || 'admin')).data?.user ?? null;
+const editableAuthor = parsed.slug ? (await getUser(parsed.slug)).data?.user ?? null : null;
 const authorObject = allPosts.find((post) => post.author && typeof post.author === 'object')?.author ?? editableAuthor;
 const archiveTitle = editableAuthor?.name || labelFromReference(authorObject) || 'Author';
 const authorSeo = (editableAuthor as any)?.seo || (authorObject as any)?.seo || null;
-const title = authorSeo?.metaTitle || archiveTitle + ' Articles | ' + (config?.seo?.title || 'First For News');
+const title = authorSeo?.metaTitle || archiveTitle + ' Articles | ' + (config?.seo?.title || 'Starter Site');
 const description = authorSeo?.metaDescription || editableAuthor?.bio || 'Read the latest articles published by ' + archiveTitle + '.';
 const basePath = '/blog/author/' + parsed.slug;
 ---
@@ -54,7 +54,7 @@ const basePath = '/blog/author/' + parsed.slug;
   noindex={authorSeo?.noindex || false}
   nofollow={authorSeo?.nofollow || false}
 >
-  <TinaIsland name="author" wrapper={islands.author.wrapper} params={{ slug: parsed.slug || 'admin' }} primary>
+  <TinaIsland name="author" wrapper={islands.author.wrapper} params={{ slug: parsed.slug }} primary>
     <DemoAuthorArchive archiveTitle={archiveTitle} author={editableAuthor || authorObject} posts={posts} currentPage={currentPage} totalPages={totalPages} basePath={basePath} />
   </TinaIsland>
 </Base>

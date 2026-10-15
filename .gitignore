@@ -40,6 +40,8 @@ node_modules/
 .env.production.local
 .env.local
 .env.production
+site.manifest.json
+*.site-manifest.json
 
 # Yarn Integrity file
 .yarn-integrity
@@ -53,12 +55,11 @@ node_modules/
 
 # Astro
 .astro
+public/admin/
 
-# TODO: After scaffolding from this template, DELETE the block below so your
-# chosen lockfile (we recommend pnpm-lock.yaml) is committed. See README → "Commit your lockfile".
-# Package Manager Lock Files
+# Keep pnpm-lock.yaml committed for reproducible clones.
+# Ignore lockfiles from package managers this repository does not use.
 package-lock.json
-pnpm-lock.yaml
 yarn.lock
 .yarn/cache
 bun.lockb

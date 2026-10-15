@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 
-for (const envFile of ['.env', '.env.boilerplate']) {
+for (const envFile of ['.env', process.env.SITE_ENV_FILE].filter(Boolean)) {
   if (!existsSync(envFile)) continue;
   const content = readFileSync(envFile, 'utf8');
   for (const rawLine of content.split(/\r?\n/)) {

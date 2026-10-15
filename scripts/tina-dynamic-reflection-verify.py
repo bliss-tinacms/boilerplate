@@ -18,15 +18,12 @@ from pathlib import Path
 
 import requests
 
-SITE = os.environ.get("SITE_URL", "https://firstfornews.net").rstrip("/")
-CLIENT_ID = (
-    os.environ.get("NEXT_PUBLIC_TINA_CLIENT_ID")
-    or os.environ.get("PUBLIC_TINA_CLIENT_ID")
-    or os.environ.get("TINA_PUBLIC_CLIENT_ID")
-    or "a9684e57-12db-4e1e-81bb-c908941e164f"
-)
+SITE = os.environ.get("SITE_URL", "https://example.com").rstrip("/")
+CLIENT_ID = os.environ.get("NEXT_PUBLIC_TINA_CLIENT_ID", "").strip()
 BRANCH = os.environ.get("NEXT_PUBLIC_TINA_BRANCH") or os.environ.get("TINA_BRANCH") or "main"
-TOKEN = os.environ.get("NEXT_PUBLIC_TINA_TOKEN") or os.environ.get("TINA_PUBLIC_TINA_TOKEN") or os.environ.get("TINA_TOKEN") or ""
+TOKEN = os.environ.get("TINA_TOKEN", "").strip()
+if not CLIENT_ID or not TOKEN:
+    raise SystemExit("NEXT_PUBLIC_TINA_CLIENT_ID and TINA_TOKEN are required.")
 TINA_URL = f"https://content.tinajs.io/2.4/content/{CLIENT_ID}/github/{BRANCH}"
 
 

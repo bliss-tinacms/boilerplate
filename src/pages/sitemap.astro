@@ -8,8 +8,8 @@ export const prerender = false;
 const pages = await listPages();
 const posts = await listBlogs();
 
-const title = 'Sitemap | First For News';
-const description = 'Browse the public pages and latest reporting published by First For News.';
+const title = 'Sitemap | Starter Site';
+const description = 'Browse the public pages and latest reporting published by Starter Site.';
 
 function cleanTitle(value: unknown, fallback = 'Untitled') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
@@ -47,26 +47,29 @@ function isHiddenPost(post: any) {
   return Boolean(post?.draft || post?.seo?.noindex);
 }
 
-const pageLinks = pages
-  .filter((page) => !isHiddenPage(page))
-  .map((page) => ({
+type SitemapLink = { title: string; url: string };
+type SitemapPostLink = SitemapLink & { date: Date | null };
+
+const pageLinks: SitemapLink[] = (pages as any[])
+  .filter((page: any) => !isHiddenPage(page))
+  .map((page: any): SitemapLink => ({
     title: cleanTitle(page.title || page.seoTitle || page.seo?.metaTitle, page?._sys?.filename || 'Page'),
     url: pageUrl(page),
   }))
-  .sort((a, b) => {
+  .sort((a: SitemapLink, b: SitemapLink) => {
     if (a.url === '/') return -1;
     if (b.url === '/') return 1;
     return a.title.localeCompare(b.title);
   });
 
-const postLinks = posts
-  .filter((post) => !isHiddenPost(post))
-  .map((post) => ({
+const postLinks: SitemapPostLink[] = (posts as any[])
+  .filter((post: any) => !isHiddenPost(post))
+  .map((post: any): SitemapPostLink => ({
     title: cleanTitle(post.title || post.seo?.metaTitle, post?._sys?.filename || 'Story'),
     url: postUrl(post),
     date: post.pubDate ? new Date(post.pubDate) : null,
   }))
-  .sort((a, b) => Number(b.date || 0) - Number(a.date || 0));
+  .sort((a: SitemapPostLink, b: SitemapPostLink) => Number(b.date || 0) - Number(a.date || 0));
 
 const totalLinks = pageLinks.length + postLinks.length;
 const latestPost = postLinks[0] ?? null;
@@ -86,7 +89,7 @@ const updated = new Date();
         <div class="ph-in sitemap-ph__in">
           <div class="ph-k"><b>Site index</b></div>
           <h1 id="sitemap-title">Sitemap</h1>
-          <p class="ph-d">A clean index of First For News public pages and published reporting, pulled dynamically from the Tina content collections.</p>
+          <p class="ph-d">A clean index of Starter Site public pages and published reporting, pulled dynamically from the Tina content collections.</p>
           <div class="sitemap-metrics" aria-label="Sitemap totals">
             <span><strong>{pageLinks.length}</strong> Pages</span>
             <span><strong>{postLinks.length}</strong> Stories</span>
@@ -121,7 +124,7 @@ const updated = new Date();
             <h2 id="sitemap-pages-title" class="h2">Website pages</h2>
             {pageLinks.length > 0 ? (
               <ul class="sitemap-list">
-                {pageLinks.map((item, index) => (
+                {pageLinks.map((item: SitemapLink, index: number) => (
                   <li>
                     <span class="sitemap-list__number">{String(index + 1).padStart(2, '0')}</span>
                     <a href={item.url}>{item.title}</a>
@@ -144,7 +147,7 @@ const updated = new Date();
             <h2 id="sitemap-posts-title" class="h2">Latest stories</h2>
             {postLinks.length > 0 ? (
               <ul class="sitemap-list sitemap-list--posts">
-                {postLinks.map((item, index) => (
+                {postLinks.map((item: SitemapPostLink, index: number) => (
                   <li>
                     <span class="sitemap-list__number">{String(index + 1).padStart(2, '0')}</span>
                     <a href={item.url}>{item.title}</a>

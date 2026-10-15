@@ -8,8 +8,8 @@ import DemoOurTeamPage from '../demo/DemoOurTeamPage.astro';
 import DemoPageTemplate from '../demo/DemoPageTemplate.astro';
 
 const { data, config = null } = Astro.props;
-const pageBlocks = Array.isArray(data?.blocks) ? data.blocks : [];
-const homepageTemplateBlock = pageBlocks.find((block) => block?._template === 'homepageTemplate' || block?.__typename === 'PageBlocksHomepageTemplate');
+const pageBlocks: any[] = Array.isArray(data?.blocks) ? data.blocks : [];
+const homepageTemplateBlock = pageBlocks.find((block: any) => block?._template === 'homepageTemplate' || block?.__typename === 'PageBlocksHomepageTemplate');
 const filename = data?._sys?.filename || '';
 const permalink = String(data?.permalink || '').replace(/^\/+|\/+$/g, '');
 const isHomePage = Boolean(filename === 'home' || data?.permalink === '/' || homepageTemplateBlock);

@@ -1,7 +1,7 @@
 ﻿---
 import { Icon } from 'astro-icon/components';
 import { tinaField } from "@tinacms/astro/tina-field";
-import type { CmsConfig } from '../lib/data';
+import type { CmsConfig, CmsConfigContactLink, CmsConfigNav } from '../lib/data';
 import IconLink from "./IconLink.astro";
 import ThemeToggle from './ThemeToggle.astro';
 
@@ -11,8 +11,8 @@ interface Props {
 
 const { config } = Astro.props;
 const seo = config?.seo ?? null;
-const nav = (config?.nav ?? []).filter(item => item !== null);
-const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
+const nav = ((config?.nav ?? []) as Array<CmsConfigNav | null>).filter((item: CmsConfigNav | null): item is CmsConfigNav => item !== null);
+const contactLinks = ((config?.contactLinks ?? []) as Array<CmsConfigContactLink | null>).filter((item: CmsConfigContactLink | null): item is CmsConfigContactLink => item !== null);
 ---
 
 <header class="fixed top-0 z-20 w-full border-b bg-background/50 backdrop-blur-xl">
@@ -22,13 +22,13 @@ const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
 			<span data-tina-field={seo ? tinaField(seo, "title") : undefined}>{seo?.title}</span>
 		</a>
 		<div class="hidden items-center gap-8 text-sm lg:flex">
-			{nav.map((item) => (
+			{nav.map((item: CmsConfigNav) => (
 				<a href={item.link} class="text-muted-foreground transition-colors hover:text-foreground" data-tina-field={tinaField(item, "title")}>{item.title}</a>
 			))}
 		</div>
 		<div class="flex items-center gap-3">
 			<div class="hidden items-center gap-3 lg:flex">
-				{contactLinks.map((link) => (
+				{contactLinks.map((link: CmsConfigContactLink) => (
 					<IconLink title={link.title} link={link.link} icon={link.icon} data-tina-field={tinaField(link, "title")} />
 				))}
 				<ThemeToggle />
@@ -52,7 +52,7 @@ const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
 		class="border-t bg-background/95 backdrop-blur-xl lg:hidden"
 	>
 		<div class="mx-auto flex max-w-6xl flex-col px-6 py-4">
-			{nav.map((item) => (
+			{nav.map((item: CmsConfigNav) => (
 				<a
 					href={item.link}
 					class="border-b border-border/50 py-3 text-sm text-muted-foreground transition-colors last:border-b-0 hover:text-foreground"
@@ -63,7 +63,7 @@ const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
 			))}
 			<div class="mt-4 flex items-center justify-between gap-3 pt-4">
 				<div class="flex items-center gap-2">
-					{contactLinks.map((link) => (
+					{contactLinks.map((link: CmsConfigContactLink) => (
 						<IconLink title={link.title} link={link.link} icon={link.icon} data-tina-field={tinaField(link, "title")} />
 					))}
 				</div>
@@ -71,7 +71,7 @@ const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
 			</div>
 		</div>
 	</div>
-<!-- First For News desktop nav restore toggle START -->
+<!-- Starter Site desktop nav restore toggle START -->
 <script is:inline>
 (function () {
   function ready(fn) {
@@ -192,7 +192,7 @@ const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
   });
 })();
 </script>
-<!-- First For News desktop nav restore toggle END -->
+<!-- Starter Site desktop nav restore toggle END -->
 </header>
 <style>
 	#mobile-menu-toggle .icon-close { display: none; }

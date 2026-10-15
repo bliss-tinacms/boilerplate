@@ -211,17 +211,41 @@ type BlogConnection implements Connection {
   edges: [BlogConnectionEdges]
 }
 
+type CategorySeo {
+  metaTitle: String
+  metaDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: String
+  canonicalUrl: String
+  noindex: Boolean
+  nofollow: Boolean
+}
+
 type Category implements Node & Document {
   title: String!
   description: String
+  seo: CategorySeo
   id: ID!
   _sys: SystemInfo!
   _values: JSON!
 }
 
+input CategorySeoFilter {
+  metaTitle: StringFilter
+  metaDescription: StringFilter
+  ogTitle: StringFilter
+  ogDescription: StringFilter
+  ogImage: ImageFilter
+  canonicalUrl: StringFilter
+  noindex: BooleanFilter
+  nofollow: BooleanFilter
+}
+
 input CategoryFilter {
   title: StringFilter
   description: StringFilter
+  seo: CategorySeoFilter
 }
 
 type CategoryConnectionEdges {
@@ -1017,15 +1041,38 @@ type PageConnection implements Connection {
   edges: [PageConnectionEdges]
 }
 
+type UserSeo {
+  metaTitle: String
+  metaDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: String
+  canonicalUrl: String
+  noindex: Boolean
+  nofollow: Boolean
+}
+
 type User implements Node & Document {
   name: String!
   role: String
   avatar: String
   bio: String
   email: String
+  seo: UserSeo
   id: ID!
   _sys: SystemInfo!
   _values: JSON!
+}
+
+input UserSeoFilter {
+  metaTitle: StringFilter
+  metaDescription: StringFilter
+  ogTitle: StringFilter
+  ogDescription: StringFilter
+  ogImage: ImageFilter
+  canonicalUrl: StringFilter
+  noindex: BooleanFilter
+  nofollow: BooleanFilter
 }
 
 input UserFilter {
@@ -1034,6 +1081,7 @@ input UserFilter {
   avatar: ImageFilter
   bio: StringFilter
   email: StringFilter
+  seo: UserSeoFilter
 }
 
 type UserConnectionEdges {
@@ -1093,6 +1141,10 @@ type NavigationConnection implements Connection {
   edges: [NavigationConnectionEdges]
 }
 
+union ConfigHeaderNavigation = Navigation
+
+union ConfigFooterNavigation = Navigation
+
 type ConfigSeo {
   title: String
   description: String
@@ -1123,6 +1175,8 @@ type ConfigContactLinks {
 }
 
 type Config implements Node & Document {
+  headerNavigation: ConfigHeaderNavigation
+  footerNavigation: ConfigFooterNavigation
   favicon: String
   seo: ConfigSeo
   contactForm: ConfigContactForm
@@ -1132,6 +1186,14 @@ type Config implements Node & Document {
   id: ID!
   _sys: SystemInfo!
   _values: JSON!
+}
+
+input ConfigHeaderNavigationFilter {
+  navigation: NavigationFilter
+}
+
+input ConfigFooterNavigationFilter {
+  navigation: NavigationFilter
 }
 
 input ConfigSeoFilter {
@@ -1164,6 +1226,8 @@ input ConfigContactLinksFilter {
 }
 
 input ConfigFilter {
+  headerNavigation: ConfigHeaderNavigationFilter
+  footerNavigation: ConfigFooterNavigationFilter
   favicon: ImageFilter
   seo: ConfigSeoFilter
   contactForm: ConfigContactFormFilter
@@ -1249,9 +1313,21 @@ input BlogMutation {
   body: JSON
 }
 
+input CategorySeoMutation {
+  metaTitle: String
+  metaDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: String
+  canonicalUrl: String
+  noindex: Boolean
+  nofollow: Boolean
+}
+
 input CategoryMutation {
   title: String
   description: String
+  seo: CategorySeoMutation
 }
 
 input PageSeoMutation {
@@ -1642,12 +1718,24 @@ input PageMutation {
   blocks: [PageBlocksMutation]
 }
 
+input UserSeoMutation {
+  metaTitle: String
+  metaDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: String
+  canonicalUrl: String
+  noindex: Boolean
+  nofollow: Boolean
+}
+
 input UserMutation {
   name: String
   role: String
   avatar: String
   bio: String
   email: String
+  seo: UserSeoMutation
 }
 
 input NavigationItemsChildrenMutation {
@@ -1696,6 +1784,8 @@ input ConfigContactLinksMutation {
 }
 
 input ConfigMutation {
+  headerNavigation: String
+  footerNavigation: String
   favicon: String
   seo: ConfigSeoMutation
   contactForm: ConfigContactFormMutation

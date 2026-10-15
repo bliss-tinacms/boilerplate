@@ -4,17 +4,16 @@ import { join } from 'node:path';
 import { getBlogPermalink } from '../../lib/permalinks';
 import TinaMarkdown from '@tinacms/astro/TinaMarkdown.astro';
 import { tinaField } from '@tinacms/astro/tina-field';
-import type { CmsBlog, CmsUser } from '../../lib/data';
+import type { CmsBlog } from '../../lib/data';
 import FormattedDate from '../FormattedDate.astro';
 import { mdxComponents } from '../mdx/components';
 
 interface Props {
 	data?: CmsBlog | null;
 	relatedPosts?: CmsBlog[];
-	defaultAuthor?: CmsUser | null;
 }
 
-const { data, relatedPosts = [], defaultAuthor = null } = Astro.props;
+const { data, relatedPosts = [] } = Astro.props;
 
 type ReferenceObject = {
 	title?: string | null;
@@ -138,15 +137,15 @@ function getFallbackPublishedDate(post?: CmsBlog | null) {
 }
 
 const postAuthor = data ? getAuthor(data.author) : null;
-const author = defaultAuthor || postAuthor;
-const authorName = getReferenceLabel(defaultAuthor) || getReferenceLabel(postAuthor) || getReferenceLabel(data?.author) || 'Newsroom Staff';
+const author = postAuthor;
+const authorName = getReferenceLabel(postAuthor) || getReferenceLabel(data?.author) || 'Site Staff';
 const authorSlug = getReferenceSlug(data?.author) || getReferenceSlug(author);
 const authorArchiveUrl = authorSlug ? `/blog/author/${authorSlug}/` : '/blog/';
-const authorInitials = authorName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'FF';
+const authorInitials = authorName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'SS';
 const categoryLabel = getReferenceLabel(getPostCategories(data)) || 'Article';
 const publishedDate = data?.pubDate ? new Date(data.pubDate) : getFallbackPublishedDate(data);
 const shareUrl = data ? getPostUrl(data) : '/blog/';
-const shareTitle = data?.title || 'First For News';
+
 const tocItems = getTocItems(data?.body);
 const hasToc = tocItems.length > 0;
 
@@ -222,7 +221,7 @@ const heroImageAlt = (() => {
 						<div class="rc-t">Share this story</div>
 						<div class="sh">
 							<a href={shareUrl} data-copy-link aria-label="Copy this post URL"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"></path><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"></path></svg><span>Copy Link</span></a>
-							<a href="mailto:contact@firstfornews.net"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"></path><path d="m4 7 8 6 8-6"></path></svg><span>Email Us</span></a>
+							<a href="mailto:hello@example.com"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"></path><path d="m4 7 8 6 8-6"></path></svg><span>Email Us</span></a>
 							<a href="/contact"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H8l-3 3z"></path></svg><span>Send a Tip</span></a>
 						</div>
 					</div>
@@ -230,7 +229,7 @@ const heroImageAlt = (() => {
 						<div class="rc-t">Write for us</div>
 						<div class="rc-b">
 							<a href="/write-for-us" class="rr">
-								<div class="rr-h">Share a news tip, expert insight, or original story idea with the First For News editorial team &rarr;</div>
+								<div class="rr-h">Share a news tip, expert insight, or original story idea with the Starter Site editorial team &rarr;</div>
 							</a>
 						</div>
 					</div>
@@ -247,7 +246,7 @@ const heroImageAlt = (() => {
 						<div class="corr-t">Published by</div>
 						<div class="corr-b">
 							<strong id="post-author-heading"><a href={authorArchiveUrl}>{authorName}</a></strong>
-							{author?.bio ? ` — ${author.bio}` : ' — First For News newsroom contributor.'}
+							{author?.bio ? ` — ${author.bio}` : ' — Starter Site newsroom contributor.'}
 						</div>
 					</section>
 				</article>
