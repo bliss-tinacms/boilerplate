@@ -1,11 +1,9 @@
 {
-  "headerNavigation": "src/content/navigation/header.json",
-  "footerNavigation": "src/content/navigation/footer.json",
   "seo": {
     "title": "Starter Site",
     "description": "A clean Astro and TinaCMS starter ready for your content, brand, and services.",
     "siteOwner": "Site Owner",
-    "logo": "",
+    "logo": "https://res.cloudinary.com/qwdyyii2/image/upload/v1791209754/boilerplate/favicon.png",
     "favicon": "/favicon.svg",
     "footerLogo": ""
   },
