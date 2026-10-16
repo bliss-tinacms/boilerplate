@@ -61,6 +61,8 @@ const forbidden = [
   [/xppwzoep/gi, 'starter Formspree form ID'],
   [/qwdyyii2/gi, 'starter Cloudinary cloud'],
   [/bliss-tinacms\/boilerplate/gi, 'starter repository baked into runtime source'],
+  [/Splash\s*News\s*Wire/gi, 'former publication brand'],
+  [/[A-Z]:\\\\Users\\\\/g, 'machine-specific Windows path'],
 ];
 const textExtensions = new Set(['.ts', '.tsx', '.astro', '.js', '.mjs', '.json', '.md', '.mdx', '.py', '.yml', '.yaml', '.css']);
 for (const path of walk(root)) {
@@ -92,6 +94,10 @@ if (!existsSync(join(root, 'scripts/provision-site.mjs'))) fail('scripts/provisi
 if (!existsSync(join(root, 'site.manifest.example.json'))) fail('site.manifest.example.json is required for repeatable site provisioning.');
 if (!existsSync(join(root, 'scripts/tina-build-safe.mjs'))) fail('scripts/tina-build-safe.mjs is required for direct Cloud schema checks and secret-safe generation.');
 if (!existsSync(join(root, 'scripts/sanitize-generated-client.mjs'))) fail('scripts/sanitize-generated-client.mjs is required to keep generated credentials out of source control.');
+for (const path of walk(root)) {
+  const rel = relative(root, path).replaceAll('\\', '/');
+  if (/(?:\.before-|\.bak(?:-|\/))[0-9-]*/.test(rel)) fail(`${rel}: backup files must not be tracked or shipped.`);
+}
 const gitignore = read('.gitignore');
 if (/^pnpm-lock\.yaml$/m.test(gitignore)) fail('pnpm-lock.yaml must be tracked.');
 if (!/^\.env$/m.test(gitignore) && !/^\.env\*$/m.test(gitignore)) fail('.env secrets must be ignored.');
@@ -127,7 +133,16 @@ if (strictRuntime) {
   const siteUrl = String(process.env.SITE_URL || '');
   const provisionMode = String(process.env.SITE_PROVISION_MODE || '');
   if (!['independent', 'same-site-migration'].includes(provisionMode)) fail('SITE_PROVISION_MODE must be independent or same-site-migration.');
-  if (siteUrl && !/^https:\/\/[^/]+$/.test(siteUrl)) fail('SITE_URL must be an HTTPS origin without a path.');
+  if (siteUrl) {
+    try {
+      const parsed = new URL(siteUrl);
+      if (parsed.protocol !== 'https:' || parsed.origin !== siteUrl || parsed.username || parsed.password) {
+        fail('SITE_URL must be a valid HTTPS origin without credentials, path, query, or fragment.');
+      }
+    } catch {
+      fail('SITE_URL must be a valid HTTPS origin without credentials, path, query, or fragment.');
+    }
+  }
   const repo = String(process.env.GITHUB_CONTENT_REPO || '');
   if (repo && !/^[^/\s]+\/[^/\s]+$/.test(repo)) fail('GITHUB_CONTENT_REPO must use owner/repository format.');
   const folder = String(process.env.CLOUDINARY_ROOT_FOLDER || '').toLowerCase();

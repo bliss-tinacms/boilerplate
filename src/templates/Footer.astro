@@ -21,8 +21,9 @@ const { config, navigation } = Astro.props;
 const currentYear = new Date().getFullYear();
 const seo = config?.seo ?? null;
 const siteTitle = seo?.title || 'Starter Site';
-// Footer Logo must drive the footer when set; fall back to the main Logo only when Footer Logo is empty.
-const footerLogo = seo?.footerLogo || seo?.logo || '/brand-assets/a80bca69-bdf7-4a94-80eb-063779debed2.png';
+// Footer Logo must drive the footer when set; fall back to the main Logo and
+// then to the configured site title so a migrated site never inherits a logo.
+const footerLogo = seo?.footerLogo || seo?.logo || '';
 const footerMenuItems = ((navigation?.items ?? []) as NavItem[]).filter((item) => item && item.label && item.href);
 const fineLinks = [
   { label: 'Privacy', href: '/privacy-policy/' },
@@ -45,7 +46,11 @@ const fineLinks = [
   </div>
   <div class="w">
     <div class="ft-cl">
-      <img src={footerLogo} alt={siteTitle} data-tina-field={seo ? tinaField(seo, 'footerLogo') : undefined} loading="lazy" decoding="async" />
+      {footerLogo ? (
+        <img src={footerLogo} alt={siteTitle} data-tina-field={seo ? tinaField(seo, 'footerLogo') : undefined} loading="lazy" decoding="async" />
+      ) : (
+        <a class="ft-wordmark" href="/" aria-label={`${siteTitle} home`}>{siteTitle}</a>
+      )}
       <nav class="ft-links" aria-label={navigation?.title || 'Footer menu'}>
         {footerMenuItems.map((item) => (
           <a href={item.href || '#'} data-tina-field={tinaField(item, 'label')}>{item.label}</a>

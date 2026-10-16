@@ -42,7 +42,16 @@ const missing = required.filter((key) => !String(site[key] ?? '').trim());
 if (missing.length) stop(`missing required manifest keys: ${missing.join(', ')}.`);
 if (!['independent', 'same-site-migration'].includes(site.mode)) stop('mode must be "independent" or "same-site-migration".');
 if (!['node', 'vercel', 'cloudflare', 'netlify'].includes(site.deployAdapter)) stop('deployAdapter must be node, vercel, cloudflare, or netlify.');
-if (!/^https:\/\/[^/]+$/.test(site.siteUrl)) stop('siteUrl must be an HTTPS origin without a path.');
+site.siteUrl = String(site.siteUrl).trim();
+let parsedSiteUrl;
+try {
+  parsedSiteUrl = new URL(site.siteUrl);
+} catch {
+  stop('siteUrl must be a valid HTTPS origin without credentials, path, query, or fragment.');
+}
+if (parsedSiteUrl.protocol !== 'https:' || parsedSiteUrl.origin !== site.siteUrl || parsedSiteUrl.username || parsedSiteUrl.password) {
+  stop('siteUrl must be a valid HTTPS origin without credentials, path, query, or fragment.');
+}
 if (!/^[^/\s]+\/[^/\s]+$/.test(site.githubContentRepo)) stop('githubContentRepo must use owner/repository format.');
 if (!/^[A-Za-z0-9._-]+$/.test(site.cloudinaryRootFolder)) stop('cloudinaryRootFolder may contain only letters, numbers, dot, underscore, and dash.');
 if (site.formspreeEndpoint && !/^https:\/\/formspree\.io\/f\/[A-Za-z0-9_-]+$/.test(site.formspreeEndpoint)) stop('formspreeEndpoint is malformed.');
@@ -57,7 +66,6 @@ if (site.mode === 'independent') {
     ['siteUrl', /boilerplate\.blissdrive\.net/i],
     ['tinaClientId', /^40bc8cd1-d0fe-4061-b99c-d91be2de59e0$/i],
     ['githubContentRepo', /^bliss-tinacms\/boilerplate$/i],
-    ['cloudinaryCloudName', /^qwdyyii2$/i],
     ['cloudinaryRootFolder', /^(boilerplate|starter|default)$/i],
   ];
   for (const [key, pattern] of forbidden) {

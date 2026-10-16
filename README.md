@@ -22,11 +22,7 @@ Start the dev server, then edit visually at `localhost:4321/admin/`:
 pnpm dev
 ```
 
-![homepage](./public/home-page.png)
-
-**Figure: Homepage UI**
-
-## Features 
+## Features
 
 - Visual editing via [`@tinacms/astro`](https://www.npmjs.com/package/@tinacms/astro) — a vanilla-JS bridge, with no React in the page tree
 - Tailwind CSS v4 block builder: Hero, CTA, Features, Stats, Testimonial, Callout, Content, Split, and Video
@@ -53,8 +49,10 @@ To build without TinaCloud — a purely local/offline build with no auth — run
 ## Provisioning many independent sites
 
 Each new publisher must have its own repository, Tina project/client ID and token,
-site URL, and Cloudinary folder. Never copy the boilerplate's `.env`, generated
-`public/admin/` directory, Tina identity, Formspree form, or service credentials.
+site URL, and Cloudinary folder. A shared Cloudinary account is supported, but use
+a unique root folder and preferably a named per-site API key. Never copy the
+boilerplate's `.env`, generated `public/admin/` directory, Tina identity,
+Formspree form, or source-site API key/secret pair.
 
 1. Clone this repository into the new site's repository.
 2. Copy `site.manifest.example.json` to an ignored file such as
@@ -75,7 +73,7 @@ site URL, and Cloudinary folder. Never copy the boilerplate's `.env`, generated
    Provisioning writes a mode-`0600`, ignored `.env` and updates the neutral site
    identity in `src/content/config/config.json`. It refuses placeholders and, for
    independent sites, rejects the source boilerplate's domain, Tina project,
-   repository and Cloudinary identity.
+   repository and Cloudinary root folder.
 
 4. Commit the new site's source and push its Tina branch. Wait for Tina Cloud to
    index that branch, then run `pnpm build`. The production build intentionally

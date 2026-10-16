@@ -116,6 +116,7 @@ a:hover{color:var(--org2)}
 .ft-band-in p{font-family:var(--dsp);font-size:31px;font-weight:800;text-transform:uppercase;line-height:1.06;letter-spacing:-.005em;color:var(--blk);max-width:none;text-align:center}
 .ft-cl{padding:42px 0 32px;display:flex;align-items:center;justify-content:space-between;gap:20px 44px;flex-wrap:wrap}
 .ft-cl img{max-height:54px;width:auto;display:block}
+.ft-wordmark{color:#fff;font-family:var(--font-serif);font-size:clamp(1.75rem,4vw,3rem);font-weight:700;line-height:1;text-decoration:none}
 .ft-links{display:flex;flex-wrap:wrap;align-items:center}
 .ft-links a{font-family:var(--cnd);font-size:17px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#fff;text-decoration:none;padding:12px 0;display:inline-flex;align-items:center;transition:color .15s}
 .ft-links a:not(:last-child)::after{content:'';width:5px;height:5px;background:var(--org);display:inline-block;margin:0 20px;flex:none}
