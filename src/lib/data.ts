@@ -393,9 +393,9 @@ async function getLiveNavigation(relativePath: string) {
 	return requestWithMetadata(client.queries.navigation({ relativePath }));
 }
 
-export const getHeaderNavigation = (config?: any) => getLiveNavigation(navigationRelativePath(config?.headerNavigation));
+export const getHeaderNavigation = (config?: any) => getLiveNavigation(navigationRelativePath(config?.headerNavigation) || 'header.json');
 
-export const getFooterNavigation = (config?: any) => getLiveNavigation(navigationRelativePath(config?.footerNavigation));
+export const getFooterNavigation = (config?: any) => getLiveNavigation(navigationRelativePath(config?.footerNavigation) || 'footer.json');
 
 
 
