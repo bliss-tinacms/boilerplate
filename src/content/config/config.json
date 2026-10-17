@@ -1,6 +1,8 @@
 {
+  "headerNavigation": "",
+  "footerNavigation": "",
   "seo": {
-    "title": "Starter Site",
+    "title": "Starter Site BDGATE-config-1792266904363",
     "description": "A clean Astro and TinaCMS starter ready for your content, brand, and services.",
     "siteOwner": "Site Owner",
     "logo": "https://res.cloudinary.com/qwdyyii2/image/upload/v1791209754/boilerplate/favicon.png",
