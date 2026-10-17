@@ -398,29 +398,19 @@ export const getPage = (slug: string) =>
 
 export const getEditablePage = async (slug: string) => {
 	const relativePath = slug.endsWith('.mdx') ? slug : `${slug}.mdx`;
-	// Preserve Tina's generated query/data first. Local content is emergency-only:
-	// making it primary causes migrated editors to display stale deployed values.
-	try {
-		return await requestWithMetadata(client.queries.page({ relativePath }), { priority: 'primary' });
-	} catch (error) {
-		const live = await fetchLiveTinaResult<{ page: any }>(PageDocument, { relativePath });
-		if (live?.data?.page) {
-			return requestWithMetadata(Promise.resolve({
-				data: live.data,
-				query: PageDocument,
-				variables: { relativePath },
-			}), { priority: 'primary' });
-		}
-		const localPage = readLocalPageFrontmatter(relativePath);
-		if (localPage) {
-			return requestWithMetadata(Promise.resolve({
-				data: { page: localPage as any },
-				query: PageDocument,
-				variables: { relativePath },
-			}), { priority: 'primary' });
-		}
-		throw error;
+	// Use the authoritative Tina document directly so the Page island and the
+	// public SSR route read the same data. Do not let metadata enrichment turn a
+	// rejected generated request into an empty HTTP-200 form.
+	const live = await fetchLiveTinaResult<{ page: any }>(PageDocument, { relativePath });
+	if (live?.data?.page) {
+		return requestWithMetadata(Promise.resolve(live), { priority: 'primary' });
 	}
+
+	const generated = await client.queries.page({ relativePath });
+	if (!generated?.data?.page || !generated.query || !generated.variables) {
+		throw new Error(`Page editor query returned no authoritative Tina document: ${relativePath}`);
+	}
+	return requestWithMetadata(generated, { priority: 'primary' });
 };
 
 async function getLivePage(slug: string) {
