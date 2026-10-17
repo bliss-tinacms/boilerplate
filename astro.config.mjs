@@ -1,11 +1,21 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import { loadEnv } from 'vite';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
 import tina from '@tinacms/astro/integration';
 import { tinaAdminDevRedirect } from '@tinacms/astro/vite';
 import tailwindcss from '@tailwindcss/vite';
+
+// Astro config executes before Vite automatically exposes .env values. Load the
+// active mode explicitly so SITE_URL from a migrated site's .env controls every
+// build-time canonical, sitemap, RSS and social URL.
+const fileEnv = loadEnv(process.env.NODE_ENV === 'development' ? 'development' : 'production', process.cwd(), '');
+/** @param {string} name */
+function configuredEnv(name) {
+	return process.env[name] || fileEnv[name] || '';
+}
 
 // Host-neutral: every content page prerenders to static HTML, and the one
 // on-demand route (/tina-island, the visual-editing endpoint) is served by
@@ -42,11 +52,11 @@ async function getAdapter() {
 // Cloudflare Workers exposes no such var — set SITE_URL there for correct
 // canonicals. Local builds fall back to localhost.
 function getSiteUrl() {
-	if (process.env.SITE_URL) return process.env.SITE_URL;
-	if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-	if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-	if (process.env.CF_PAGES_URL) return process.env.CF_PAGES_URL;
-	if (process.env.NETLIFY && process.env.URL) return process.env.URL;
+	if (configuredEnv('SITE_URL')) return configuredEnv('SITE_URL');
+	if (configuredEnv('VERCEL_PROJECT_PRODUCTION_URL')) return `https://${configuredEnv('VERCEL_PROJECT_PRODUCTION_URL')}`;
+	if (configuredEnv('VERCEL_URL')) return `https://${configuredEnv('VERCEL_URL')}`;
+	if (configuredEnv('CF_PAGES_URL')) return configuredEnv('CF_PAGES_URL');
+	if (configuredEnv('NETLIFY') && configuredEnv('URL')) return configuredEnv('URL');
 
 	return 'http://localhost:4321';
 }

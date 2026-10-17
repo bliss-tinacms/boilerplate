@@ -29,7 +29,14 @@ const {
 	nofollow = false,
 	favicon = '/favicon.svg',
 } = Astro.props;
-const configuredSiteUrl = Astro.site || new URL(Astro.url.origin);
+const declaredSiteUrl = Astro.site ? new URL(Astro.site) : null;
+const requestOrigin = new URL(Astro.url.origin);
+const declaredIsLocal = declaredSiteUrl && ['localhost', '127.0.0.1', '::1'].includes(declaredSiteUrl.hostname);
+const requestIsPublic = !['localhost', '127.0.0.1', '::1'].includes(requestOrigin.hostname);
+// A copied build must never leak the starter's localhost fallback onto a real
+// domain. SITE_URL remains authoritative when configured; otherwise a public
+// request origin safely replaces only a local placeholder.
+const configuredSiteUrl = declaredIsLocal && requestIsPublic ? requestOrigin : (declaredSiteUrl || requestOrigin);
 function resolveCanonicalUrl(value?: string | URL | null) {
 	const raw = value ? value.toString() : Astro.url.pathname;
 	const url = new URL(raw, configuredSiteUrl);

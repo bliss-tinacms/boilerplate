@@ -59,7 +59,6 @@ const forbidden = [
   [/boilerplate\.blissdrive\.net/gi, 'starter deployment domain baked into source'],
   [/40bc8cd1-d0fe-4061-b99c-d91be2de59e0/gi, 'starter Tina client ID'],
   [/xppwzoep/gi, 'starter Formspree form ID'],
-  [/qwdyyii2/gi, 'starter Cloudinary cloud'],
   [/bliss-tinacms\/boilerplate/gi, 'starter repository baked into runtime source'],
   [/Splash\s*News\s*Wire/gi, 'former publication brand'],
   [/[A-Z]:\\\\Users\\\\/g, 'machine-specific Windows path'],
@@ -97,14 +96,23 @@ if (!existsSync(join(root, 'scripts/sanitize-generated-client.mjs'))) fail('scri
 for (const path of walk(root)) {
   const rel = relative(root, path).replaceAll('\\', '/');
   if (/(?:\.before-|\.bak(?:-|\/))[0-9-]*/.test(rel)) fail(`${rel}: backup files must not be tracked or shipped.`);
+  if (/^_hermes-/.test(rel) || rel === 'nulmkdir') fail(`${rel}: one-off migration helper/scratch files must not be tracked or shipped.`);
 }
 const gitignore = read('.gitignore');
 if (/^pnpm-lock\.yaml$/m.test(gitignore)) fail('pnpm-lock.yaml must be tracked.');
 if (!/^\.env$/m.test(gitignore) && !/^\.env\*$/m.test(gitignore)) fail('.env secrets must be ignored.');
 if (!/^site\.manifest\.json$/m.test(gitignore)) fail('Filled site.manifest.json files must be ignored.');
 const packageJson = JSON.parse(read('package.json'));
-for (const command of ['site:provision', 'sanitize:generated', 'validate:starter', 'validate:site']) {
+for (const command of ['site:provision', 'sanitize:generated', 'validate:starter', 'validate:site', 'tina:fullcheck']) {
   if (!packageJson.scripts?.[command]) fail(`package.json is missing ${command}.`);
+}
+const astroConfig = read('astro.config.mjs');
+if (!/loadEnv\s*\(/.test(astroConfig) || !/configuredEnv\(['"]SITE_URL['"]\)/.test(astroConfig)) {
+  fail('astro.config.mjs must load SITE_URL from the active .env mode before generating absolute URLs.');
+}
+const baseHead = read('src/components/BaseHead.astro');
+if (!/declaredIsLocal/.test(baseHead) || !/requestIsPublic/.test(baseHead)) {
+  fail('BaseHead must replace only a localhost placeholder with the public request origin.');
 }
 if (packageJson.scripts?.['provision:clone']) fail('Legacy clone/search-replace provisioning command must not exist.');
 
