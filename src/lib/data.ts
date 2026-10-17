@@ -330,29 +330,23 @@ export async function getConfig() {
 
 export const getEditableConfig = async () => {
 	const relativePath = 'config.json';
-	// Editor data must come from Tina first. Using deployed local JSON here makes
-	// a migrated admin form stale and can overwrite or conceal saved Cloud values.
-	try {
-		return await requestWithMetadata(client.queries.config({ relativePath }));
-	} catch (error) {
-		const live = await fetchLiveTinaResult<{ config: any }>(ConfigDocument, { relativePath });
-		if (live?.data?.config) {
-			return requestWithMetadata(Promise.resolve({
-				data: live.data,
-				query: ConfigDocument,
-				variables: { relativePath },
-			}));
-		}
-		const localConfig = readLocalJson('config', relativePath);
-		if (localConfig) {
-			return requestWithMetadata(Promise.resolve({
-				data: { config: localConfig as any },
-				query: ConfigDocument,
-				variables: { relativePath },
-			}));
-		}
-		throw error;
+	// Passenger must query Tina Cloud directly for editor islands. The generated
+	// browser client may point at this site's proxy, which is unsafe for an SSR
+	// self-request and can silently collapse to an empty requestWithMetadata form.
+	const live = await fetchLiveTinaResult<{ config: any }>(ConfigDocument, { relativePath });
+	if (live?.data?.config) {
+		return requestWithMetadata(Promise.resolve(live));
 	}
+
+	// Keep the generated client only as a secondary transport. Resolve it before
+	// requestWithMetadata so a rejected/empty request cannot be hidden as a form
+	// with query="" and variables={}. Local JSON is deliberately not an editor
+	// source because it lacks authoritative Tina metadata and may overwrite Cloud.
+	const generated = await client.queries.config({ relativePath });
+	if (!generated?.data?.config || !generated.query || !generated.variables) {
+		throw new Error('Global Config editor query returned no authoritative Tina document');
+	}
+	return requestWithMetadata(generated);
 };
 
 
@@ -481,21 +475,23 @@ export const getPublicPage = (slug: string) => getLivePage(slug);
 
 export const getEditableBlog = async (slug: string) => {
 	const relativePath = slug.endsWith('.mdx') ? slug : `${slug}.mdx`;
-	// Preserve Tina's generated query, variables, reference objects, and rich-text body.
-	// Never synthesize or partially override editable documents.
-	try {
-		return await requestWithMetadata(client.queries.blog({ relativePath }), { priority: 'primary' });
-	} catch (_error) {
-		const live = await fetchLiveTinaResult<{ blog: any }>(BlogDocument, { relativePath });
-		if (live?.data?.blog) {
-			return requestWithMetadata(Promise.resolve({
-				data: live.data,
-				query: BlogDocument,
-				variables: { relativePath },
-			}), { priority: 'primary' });
-		}
-		throw _error;
+	// Query Tina Cloud directly first so Passenger never has to self-fetch the
+	// site's content proxy. Preserve the exact generated document and variables
+	// so the bridge receives a real editable Blog form.
+	const live = await fetchLiveTinaResult<{ blog: any }>(BlogDocument, { relativePath });
+	if (live?.data?.blog) {
+		return requestWithMetadata(Promise.resolve(live), { priority: 'primary' });
 	}
+
+	// Resolve and validate the generated request before metadata enrichment.
+	// requestWithMetadata intentionally swallows query failures for create flows;
+	// passing an unresolved rejection to it would therefore produce an HTTP-200
+	// island with an empty query and no usable sidebar.
+	const generated = await client.queries.blog({ relativePath });
+	if (!generated?.data?.blog || !generated.query || !generated.variables) {
+		throw new Error(`Blog editor query returned no authoritative Tina document: ${relativePath}`);
+	}
+	return requestWithMetadata(generated, { priority: 'primary' });
 };
 
 export async function getBlog(slug: string) {
