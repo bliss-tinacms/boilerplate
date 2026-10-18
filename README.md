@@ -48,6 +48,13 @@ To build without TinaCloud — a purely local/offline build with no auth — run
 
 ## Provisioning many independent sites
 
+The canonical release and acceptance procedure is
+[`TINA-MIGRATION-GOLD.md`](./TINA-MIGRATION-GOLD.md). It is mandatory for every
+new migration and separates a locally verified source candidate from a fully
+cloud/live-accepted deployment. The protected rollback baseline tag remains
+`tina-migration-gold-2026-10-17`; improvements are committed above it rather
+than moving or rewriting that tag.
+
 Each new publisher must have its own repository, Tina project/client ID and token,
 site URL, and Cloudinary folder. A shared Cloudinary account is supported, but use
 a unique root folder and preferably a named per-site API key. Never copy the
@@ -90,8 +97,12 @@ Formspree form, or source-site API key/secret pair.
    public reflection → exact reversion, navigation references, media upload and
    cleanup, and the live Formspree endpoint.
 
-Before committing the source boilerplate itself, run `pnpm validate:starter`,
+Before committing the source boilerplate itself, follow the complete
+`TINA-MIGRATION-GOLD.md` source-release gate and run `pnpm validate:starter`,
 `pnpm build:local`, `pnpm astro check`, a tracked-secret scan, and `git diff --check`.
+After push/deploy, complete the cloud-connected build, collection-complete
+Publisher save → backend → public → exact-restore gate, integration checks, and
+desktop/mobile live proof before describing the migration as stable.
 
 ## A note on React
 

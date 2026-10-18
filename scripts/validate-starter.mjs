@@ -93,6 +93,27 @@ if (!existsSync(join(root, 'scripts/provision-site.mjs'))) fail('scripts/provisi
 if (!existsSync(join(root, 'site.manifest.example.json'))) fail('site.manifest.example.json is required for repeatable site provisioning.');
 if (!existsSync(join(root, 'scripts/tina-build-safe.mjs'))) fail('scripts/tina-build-safe.mjs is required for direct Cloud schema checks and secret-safe generation.');
 if (!existsSync(join(root, 'scripts/sanitize-generated-client.mjs'))) fail('scripts/sanitize-generated-client.mjs is required to keep generated credentials out of source control.');
+if (!existsSync(join(root, 'TINA-MIGRATION-GOLD.md'))) fail('TINA-MIGRATION-GOLD.md is required as the canonical migration and acceptance process.');
+else {
+  const processDocument = read('TINA-MIGRATION-GOLD.md');
+  const requiredGates = [
+    ['Source-release ready', 'source-release and cloud/live acceptance separation'],
+    ['Preserve exact demo design', 'exact-demo design and CSS-isolation gate'],
+    ['Keep visible output Tina-driven', 'dynamic Tina content authority gate'],
+    ['Make runtime environment authoritative', 'application-root environment precedence gate'],
+    ['Query the verified Tina destination first', 'destination Tina endpoint and identity gate'],
+    ['Treat schema changes as migrations', 'schema/lock/cloud migration gate'],
+    ['MULTICAT-LOCK', 'multi-category preservation gate'],
+    ['Keep public email addresses ordinary', 'public email anti-obfuscation gate'],
+    ['Build and deploy one immutable release', 'atomic immutable deployment gate'],
+    ['TINA-FULLCHECK', 'collection-complete fullcheck gate'],
+    ['PUBLISHER-ADMIN-GATE', 'authenticated live-admin acceptance gate'],
+    ['exact restoration', 'reversible cleanup gate'],
+  ];
+  for (const [needle, label] of requiredGates) {
+    if (!processDocument.includes(needle)) fail(`TINA-MIGRATION-GOLD.md is missing the ${label}.`);
+  }
+}
 for (const path of walk(root)) {
   const rel = relative(root, path).replaceAll('\\', '/');
   if (/(?:\.before-|\.bak(?:-|\/))[0-9-]*/.test(rel)) fail(`${rel}: backup files must not be tracked or shipped.`);
