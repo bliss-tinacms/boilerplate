@@ -44,10 +44,13 @@ const defaultSocialImage = config?.seo?.defaultSocialImage || undefined;
 		{headerCode && <Fragment set:html={headerCode} />}
 	</head>
 	<body>
+		{/* Public Astro sites must render plain email addresses; prevent Cloudflare edge rewriting. */}
+		<Fragment set:html={'<!--email_off-->'} />
 		<div class="tr"></div>
 		<Header config={config} navigation={headerNavigation} />
 		<slot />
 		<Footer config={config} navigation={footerNavigation} />
 		{footerCode && <Fragment set:html={footerCode} />}
+		<Fragment set:html={'<!--/email_off-->'} />
 	</body>
 </html>
