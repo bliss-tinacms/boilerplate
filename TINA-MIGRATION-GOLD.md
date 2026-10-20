@@ -72,6 +72,29 @@ Missing destination identity must fail validation. It must never fall back to th
 - The Node startup entry must fail closed before importing the server bundle when any required runtime variable is missing. Never let a partially configured site start and defer discovery to Tina Media Manager.
 - Keep production `.env` outside release archives, ignored by Git, and mode `0600`.
 
+### 4A. ZERO-OMISSION SUPPLIED-CREDENTIAL INSTALLATION GATE
+
+This gate exists because a migration previously received the required Cloudinary values but deployed an incomplete runtime. **It is mandatory on every migration and cannot be replaced by a verbal confirmation, checklist tick, local build, direct SDK test, or later troubleshooting.**
+
+1. Treat every user-supplied account, key, token, folder, endpoint, domain, repository, branch, and deployment path as migration input that must be consumed. Do not ask for it again while it remains securely available.
+2. Build one protected canonical source environment from the supplied values. Do not manually retype or selectively copy individual variables during deployment.
+3. Before any Passenger restart, DNS cutover, release switch, or “done” claim, run the repository-owned installer against the exact active runtime and every retained rollback runtime:
+
+   ```sh
+   pnpm runtime:install -- --source /protected/path/site.env \
+     --target /absolute/path/active-app/.env \
+     --target /absolute/path/rollback-app/.env
+   ```
+
+4. The installer must fail before modifying any target unless the source contains every required variable, including the indivisible Cloudinary set: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, and unique `CLOUDINARY_ROOT_FOLDER`.
+5. The installer must write every target atomically at mode `0600`, read each file back, and prove secret-safe value equality with the canonical source. Output variable names/status only—never values.
+6. After installation, run `SITE_ENV_FILE=<exact-target> pnpm validate:site` separately for active and every rollback target. Any missing target, missing value, mismatch, wrong mode, placeholder, generic Cloudinary folder, or validation failure is a hard stop.
+7. The Node startup entry must independently fail before importing the server bundle when required runtime configuration is incomplete. This second barrier is mandatory even when installation passed.
+8. After restart, perform the authenticated Tina Media Manager list/UI/upload/delete proof. Direct Cloudinary SDK success does not satisfy this gate.
+9. Record `SUPPLIED_CREDENTIAL_INSTALL_PASS` only after installer tests, target read-back equality, exact-target validation, startup enforcement, and authenticated live proof all pass. Without that record, the migration is `BLOCKED` and must not be described as stable or complete.
+
+The repository validator and regression suite must require this section, the `runtime:install` command, the installer implementation, and negative tests proving that an incomplete source cannot modify a target or start the application.
+
 ### 5. Query the verified Tina destination first
 
 #### 5.0 Verify every provided destination resource before declaring anything missing

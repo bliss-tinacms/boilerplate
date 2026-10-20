@@ -100,6 +100,8 @@ for (const path of walk(join(root, 'src/content'))) {
 if (!existsSync(join(root, 'pnpm-lock.yaml'))) fail('pnpm-lock.yaml is required for reproducible provisioning.');
 if (!existsSync(join(root, 'tina/tina-lock.json'))) fail('tina/tina-lock.json is required after schema changes.');
 if (!existsSync(join(root, 'scripts/provision-site.mjs'))) fail('scripts/provision-site.mjs is required for repeatable site provisioning.');
+if (!existsSync(join(root, 'scripts/install-runtime-env.mjs'))) fail('scripts/install-runtime-env.mjs is required for zero-omission runtime installation.');
+if (!existsSync(join(root, 'scripts/test-runtime-env.mjs'))) fail('scripts/test-runtime-env.mjs is required for runtime-install regression protection.');
 if (!existsSync(join(root, 'site.manifest.example.json'))) fail('site.manifest.example.json is required for repeatable site provisioning.');
 if (!existsSync(join(root, 'scripts/tina-build-safe.mjs'))) fail('scripts/tina-build-safe.mjs is required for direct Cloud schema checks and secret-safe generation.');
 if (!existsSync(join(root, 'scripts/sanitize-generated-client.mjs'))) fail('scripts/sanitize-generated-client.mjs is required to keep generated credentials out of source control.');
@@ -113,6 +115,9 @@ else {
     ['Mandatory preflight before implementation', 'no-assumption source preflight gate'],
     ['Keep visible output Tina-driven', 'dynamic Tina content authority gate'],
     ['Make runtime environment authoritative', 'application-root environment precedence gate'],
+    ['ZERO-OMISSION SUPPLIED-CREDENTIAL INSTALLATION GATE', 'mandatory supplied-credential installation gate'],
+    ['pnpm runtime:install', 'executable active/rollback runtime installer gate'],
+    ['SUPPLIED_CREDENTIAL_INSTALL_PASS', 'secret-safe supplied-credential acceptance evidence'],
     ['Query the verified Tina destination first', 'destination Tina endpoint and identity gate'],
     ['Treat schema changes as migrations', 'schema/lock/cloud migration gate'],
     ['MULTICAT-LOCK', 'multi-category preservation gate'],
@@ -140,7 +145,7 @@ if (/^pnpm-lock\.yaml$/m.test(gitignore)) fail('pnpm-lock.yaml must be tracked.'
 if (!/^\.env$/m.test(gitignore) && !/^\.env\*$/m.test(gitignore)) fail('.env secrets must be ignored.');
 if (!/^site\.manifest\.json$/m.test(gitignore)) fail('Filled site.manifest.json files must be ignored.');
 const packageJson = JSON.parse(read('package.json'));
-for (const command of ['site:provision', 'sanitize:generated', 'validate:starter', 'validate:site', 'tina:fullcheck']) {
+for (const command of ['site:provision', 'runtime:install', 'runtime:test', 'sanitize:generated', 'validate:starter', 'validate:site', 'tina:fullcheck']) {
   if (!packageJson.scripts?.[command]) fail(`package.json is missing ${command}.`);
 }
 const astroConfig = read('astro.config.mjs');
@@ -152,6 +157,14 @@ if (!/declaredIsLocal/.test(baseHead) || !/requestIsPublic/.test(baseHead)) {
   fail('BaseHead must replace only a localhost placeholder with the public request origin.');
 }
 if (packageJson.scripts?.['provision:clone']) fail('Legacy clone/search-replace provisioning command must not exist.');
+const runtimeInstaller = read('scripts/install-runtime-env.mjs');
+for (const marker of ['REQUIRED_RUNTIME_KEYS', 'CLOUDINARY_ROOT_FOLDER', 'renameSync', '0o600', 'SUPPLIED_CREDENTIAL_INSTALL_PASS']) {
+  if (!runtimeInstaller.includes(marker)) fail(`Runtime installer is missing enforcement marker ${marker}.`);
+}
+const runtimeRegression = read('scripts/test-runtime-env.mjs');
+for (const marker of ['INCOMPLETE_SOURCE_NO_TARGET_MODIFICATION_PASS', 'INCOMPLETE_RUNTIME_STARTUP_BLOCK_PASS', 'SECRET_SAFE_CLI_EVIDENCE_PASS']) {
+  if (!runtimeRegression.includes(marker)) fail(`Runtime regression suite is missing ${marker}.`);
+}
 const startup = read('app.mjs');
 for (const name of ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'CLOUDINARY_ROOT_FOLDER']) {
   if (!startup.includes(`'${name}'`) && !startup.includes(`"${name}"`)) fail(`app.mjs must fail closed when ${name} is missing.`);
