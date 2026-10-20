@@ -4,6 +4,9 @@ This is the mandatory release process for turning this repository into a stable,
 
 The protected rollback baseline remains tag `tina-migration-gold-2026-10-17`. Do not move or rewrite that tag. Improvements are committed above it and must pass every applicable gate below before a newer release is described as migration-ready.
 
+> [!CAUTION]
+> **ZERO-OMISSION SUPPLIED-INPUT RULE:** Every credential, service identity, path, repository, branch, folder, endpoint, and deployment value already supplied for a migration must be consumed from the approved tracker or secret store and installed into the exact active and retained rollback runtimes. Never ask for an available value again, never selectively copy only part of an integration, and never call the migration complete from a provider/SDK probe. Section **4A** is a mandatory executable gate: `pnpm runtime:install`, exact target validation, fail-closed startup, and authenticated consumer-path acceptance must all pass. Any missing, placeholder, generic, mismatched, uninstalled, or unverified supplied value is an immediate `BLOCKED` result—no build, restart, cutover, or “done” claim is allowed.
+
 ## Acceptance states
 
 Never collapse these into one “done” claim:
