@@ -15,17 +15,31 @@ A local build or `--skip-cloud-checks` build proves only local source integrity.
 
 ## Non-negotiable process
 
-### 1. Preserve exact demo design
+### 1. ASTRO-DEMO-LOCK — preserve exact demo design and styling
 
-When a demo/source is supplied:
+When a demo/source is supplied, **design/styling is locked; Tina values stay dynamic**:
 
-- Copy its DOM structure, classes, declarations, fonts, colors, sizes, weights, spacing, section order, assets, and responsive rules exactly.
-- Do not redesign, simplify, omit, approximate, or add original styling.
+- Copy its page-body structure, element types, classes, CSS declarations, fonts, colors, sizes, weights, spacing, image treatment, effects, states, assets, and responsive rules exactly.
+- Do not redesign, simplify, optimize, omit, approximate, substitute a similar boilerplate component, recreate from screenshots when source exists, or add original styling.
 - Keep the approved global header/footer outside the isolated body host unless replacement is explicitly requested.
+- Keep hero media/copy, dates, page text, article records and counts, taxonomy, authors, links, and SEO dynamic through Tina. Those values may differ from the demo; the wrappers, classes, CSS, computed treatment, and responsive behavior may not.
 - Put the copied page body under a dedicated host and scoped reset so legacy site CSS cannot contribute undeclared typography, color, decoration, spacing, borders, dimensions, or responsive behavior.
 - Replay the demo’s universal baseline under the same scope after any `all: revert` reset.
-- Preserve Tina fields and `data-tina-field`; replace only visible demo values with dynamic bindings.
+- Preserve Tina fields and `data-tina-field`; replace only demo sample values with dynamic bindings.
 - Compare source and implementation at desktop, tablet/source breakpoints, and phone widths using screenshots plus computed-style/geometry checks.
+
+#### Mandatory preflight before implementation
+
+Record and pass these items before editing implementation code:
+
+1. Exact authoritative demo source files—not screenshots alone.
+2. Destination routes and the active rendering components, including catch-all ownership.
+3. Exact demo-body boundary and excluded global header/footer.
+4. Every source stylesheet, font, asset, selector and media-query threshold affecting the body.
+5. Tina source for every dynamic region: hero, content, dates, records, images, links and SEO.
+6. One containment host/reset plan that prevents legacy CSS from contributing undeclared properties.
+
+If any item is unresolved, report `BLOCKED` and investigate or ask. Never silently switch to approximation or invention.
 
 ### 2. Keep visible output Tina-driven
 

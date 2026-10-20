@@ -98,7 +98,9 @@ else {
   const processDocument = read('TINA-MIGRATION-GOLD.md');
   const requiredGates = [
     ['Source-release ready', 'source-release and cloud/live acceptance separation'],
-    ['Preserve exact demo design', 'exact-demo design and CSS-isolation gate'],
+    ['ASTRO-DEMO-LOCK', 'named exact-demo process gate'],
+    ['design/styling is locked; Tina values stay dynamic', 'design-versus-dynamic-content contract'],
+    ['Mandatory preflight before implementation', 'no-assumption source preflight gate'],
     ['Keep visible output Tina-driven', 'dynamic Tina content authority gate'],
     ['Make runtime environment authoritative', 'application-root environment precedence gate'],
     ['Query the verified Tina destination first', 'destination Tina endpoint and identity gate'],
